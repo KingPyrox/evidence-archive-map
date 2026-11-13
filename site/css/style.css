@@ -197,3 +197,31 @@ details summary { cursor: pointer; color: var(--link); }
 .glossary > div { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: .7rem 1rem; }
 .glossary dt { font-weight: 700; margin-bottom: .2rem; }
 .glossary dd { margin: 0; color: #344054; font-size: .95rem; }
+
+/* ownership: Groups view (parent, children, grandchildren as blocks joined by ribbons) */
+.og-trail { font-size: .9rem; margin: .3rem 0 .5rem; }
+.og-trail:empty { display: none; }
+.og-scroll { padding: .6rem .7rem .8rem; }
+.og-cols { position: relative; height: 1.5rem; }
+.og-cols span { position: absolute; top: 0; font-size: .75rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.og { position: relative; }
+.og svg { position: absolute; left: 0; top: 0; pointer-events: none; }
+.og-b { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: .05rem;
+  margin: 0; padding: 0 .55rem; font: inherit; text-align: left; color: var(--ink); background: #fff; cursor: pointer;
+  border: 1px solid #d0d5dd; border-left: 4px solid var(--c); border-radius: 6px; overflow: hidden; }
+.og-b:hover { background: #f5f7fa; border-color: #98a2b3; border-left-color: var(--c); }
+.og-b:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 1px; z-index: 2; }
+.og-b .n { font-size: .8rem; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.og-b .m { font-size: .74rem; line-height: 1.2; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.og-b.short { flex-direction: row; align-items: center; justify-content: space-between; gap: .5rem; }
+.og-b.short .n { flex: 1 1 auto; min-width: 0; }
+.og-b.short .m { flex: none; }
+.og-b.focus { justify-content: flex-start; padding-top: .6rem; background: #eef0f3; border-color: #d0d5dd; border-left-color: var(--c); }
+.og-b.focus .n { white-space: normal; font-size: .85rem; }
+.og-b.focus .m { white-space: normal; }
+.og-b.bucket { background: #f2f4f7; border-style: dashed; border-left-style: solid; }
+.og-b.hit { background: #fef0c7; outline: 3px solid var(--accent); z-index: 1; }
+.og-b.picked { box-shadow: 0 0 0 2px #1d4ed8; z-index: 1; }
+.og-pick { border-top: 1px solid var(--line); margin-top: .6rem; padding-top: .6rem; }
+.og-pick h4 { margin: 0 0 .4rem; font-size: .95rem; }
+.og-pick .table-wrap { max-height: 22rem; overflow: auto; }

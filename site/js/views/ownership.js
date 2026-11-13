@@ -19,6 +19,13 @@ const NAME_MAX = 34;
 const ROW_H = 17; // px per company row
 const ROOT_W = 190; // room for "BROOKFIELD CORPORATION" left of the first dot
 const TOP = 12;
+// Groups view: a block is one line tall plus extra height for each company in its group, so taller means more companies.
+const BIG_H = 200; // the biggest block on screen gets this much extra height
+const UNIT_MAX = 12; // px per company at most, so small branches don't balloon
+const MIN_H = 22; // every block is at least one line of text tall
+const IN_GAP = 4; // between siblings
+const GROUP_GAP = 14; // between one owner's group and the next
+const BUCKET_MIN = 4; // this many companies that own nothing are gathered into one grey block
 
 export async function render(root, params) {
   const [o, s] = await loadAll('ownership', 'summary');
@@ -37,9 +44,10 @@ export async function render(root, params) {
   const levels = Object.keys(st.by_level).map(Number).sort((a, b) => a - b);
   const deepest = levels[levels.length - 1] - 1;
   const widest = levels.reduce((a, l) => (st.by_level[l] > st.by_level[a] ? l : a), levels[0]);
-  const state = { q: params.q || '', view: params.view === 'list' ? 'list' : 'diagram', open: [o.tree], target: null };
+  const VIEWS = ['groups', 'drill', 'list'];
+  const state = { q: params.q || '', view: VIEWS.includes(params.view) ? params.view : params.view === 'diagram' ? 'drill' : 'groups', open: [o.tree], target: null, focus: o.tree, pick: null };
   const src = ext(o.url, fileName(o.file));
-  const save = () => setParams({ q: state.q, view: state.view === 'list' ? 'list' : '' });
+  const save = () => setParams({ q: state.q, view: state.view === 'groups' ? '' : state.view });
 
   root.innerHTML = `
     <h1>Who owns what: Brookfield Corporation</h1>
@@ -54,19 +62,22 @@ export async function render(root, params) {
     <div class="controls">
       <label>Find a company <input id="o-q" type="search" value="${esc(state.q)}" placeholder="e.g. Enercare, Brookfield Renewable"></label>
       <div class="seg" role="group" aria-label="Show the ownership tree as">
-        <button type="button" data-view="diagram" aria-pressed="${state.view === 'diagram'}">Diagram</button>
-        <button type="button" data-view="list" aria-pressed="${state.view === 'list'}">List</button>
+        <button type="button" data-view="groups">Groups</button>
+        <button type="button" data-view="drill">Drill down</button>
+        <button type="button" data-view="list">List</button>
       </div>
-      <button type="button" class="btn small secondary" id="o-reset">Close all branches</button>
+      <button type="button" class="btn small secondary" id="o-reset">Back to the top</button>
     </div>
     <div id="o-results"></div>
-    <figure class="panel fig">
-      <h3 class="fig-title">Brookfield Corporation holds ${int(st.direct_children)} companies directly. Click any company with a filled dot to see what it owns.</h3>
-      <p class="fig-how">Each line joins a company to a company it holds, with the share it holds. A <b>filled dot</b> owns more
-        companies: click it to open that branch, and click it again to close it. A <b>hollow dot</b> owns nothing further.
-        “120 below” counts every company further down that branch, at every level. The biggest branches are listed first. The colour is the
-        link type as labelled in the source table.</p>
+    <figure class="panel fig" id="o-fig">
+      <h3 class="fig-title" id="o-title"></h3>
+      <p class="fig-how" id="o-how"></p>
       <div class="legend-list">${Object.entries(TYPE_COLORS).filter(([k]) => k === 'Group root' || st.by_type[k]).map(([k, c]) => `<span><span class="dot" style="background:${c}"></span>${esc(k)}${st.by_type[k] ? ` (${int(st.by_type[k])})` : ''}</span>`).join('')}</div>
+      <div id="o-groups-box">
+        <p class="og-trail" id="o-trail"></p>
+        <div id="o-gscroll" class="o-scroll og-scroll"><div class="og-cols" id="o-cols"></div><div class="og" id="o-groups"></div></div>
+        <div id="o-pick" aria-live="polite"></div>
+      </div>
       <div id="o-scroll" class="o-scroll"><div id="o-tree" role="img" aria-label="Ownership diagram. The List button shows the same tree as a list you can use with the keyboard."></div></div>
       <div id="o-list" class="o-tree" hidden></div>
       <p class="fig-src">Source: ${src}</p>
@@ -186,6 +197,176 @@ export async function render(root, params) {
     redrawAround(n);
   });
 
+  // ---- Groups: a parent, its children and its grandchildren at once. Each block's height is the number of companies in
+  // its group (itself plus everything below it), with a floor so every name stays readable.
+  const gbox = $('#o-gscroll', root);
+  const gel = $('#o-groups', root);
+  let cur = [];
+  const gsize = (x) => (x.bucket ? x.items.length : 1 + sizeOf(x));
+  const colorOf = (x) => (x.bucket ? '#98a2b3' : x === o.tree ? TYPE_COLORS['Group root'] : TYPE_COLORS[x.link] || '#667085');
+
+  // What a company owns, biggest first. Companies that own nothing are gathered into one grey block when there are many.
+  function shown(n) {
+    const ks = kids(n);
+    const own = ks.filter((c) => c.children.length || c === state.target);
+    const rest = ks.filter((c) => !own.includes(c));
+    return rest.length >= BUCKET_MIN ? [...own, { bucket: true, items: rest, parent: n }] : [...own, ...rest];
+  }
+
+  function block(b, i, X, W) {
+    const x = b.x;
+    let name;
+    let meta;
+    let cls = 'og-b';
+    if (x.bucket) {
+      name = `${int(x.items.length)} companies that own no others`;
+      meta = 'click to list them';
+      cls += ' bucket';
+    } else {
+      name = x.name;
+      const share = x.pct == null ? '' : `${x.pct}% · `;
+      if (b.focus) meta = `owns ${int(sizeOf(x))} below${x === o.tree ? '' : ' · click to go back up'}`;
+      else meta = `${share}${x.children.length ? `${int(sizeOf(x))} below ›` : 'owns no others'}`;
+      if (b.focus) cls += ' focus';
+      if (x === state.target) cls += ' hit';
+    }
+    if (b.h < 38 && !b.focus) cls += ' short';
+    if (state.pick === x) cls += ' picked';
+    return `<button type="button" class="${cls}" data-b="${i}" style="left:${X[b.col]}px;top:${b.top}px;width:${W[b.col]}px;height:${b.h}px;--c:${colorOf(x)}" title="${esc(`${name}\n${meta}`)}"><span class="n">${esc(name)}</span><span class="m">${esc(meta)}</span></button>`;
+  }
+
+  const band = ({ from: [x0, a0, a1], to: [x1, b0, b1], x }) => {
+    const m = (x0 + x1) / 2;
+    return `<path d="M${x0} ${a0}C${m} ${a0} ${m} ${b0} ${x1} ${b0}L${x1} ${b1}C${m} ${b1} ${m} ${a1} ${x0} ${a1}Z" fill="${colorOf(x)}" fill-opacity=".2"/>`;
+  };
+
+  function groupsTitle(f) {
+    const top = kids(f)[0];
+    const big = f.children.length > 1 && sizeOf(top) ? ` The biggest group is ${top.name}, with ${int(sizeOf(top))} companies below it.` : '';
+    return `${f === o.tree ? 'Brookfield Corporation' : f.name} owns ${int(f.children.length)} compan${f.children.length === 1 ? 'y' : 'ies'} directly and ${int(sizeOf(f))} in total.${big}`;
+  }
+
+  function drawGroups() {
+    const f = state.focus;
+    // fill the panel: a narrow parent column, then two equal columns for children and grandchildren
+    const avail = gbox.clientWidth - 24;
+    const narrow = avail < 760;
+    const GAP = narrow ? 40 : 80;
+    const W0 = narrow ? 120 : 180;
+    const W1 = Math.max(220, Math.floor((avail - W0 - 2 * GAP) / 2));
+    const W = [W0, W1, W1];
+    const X = [0, W[0] + GAP, W[0] + W[1] + 2 * GAP];
+    const firstCols = shown(f).flatMap((p) => [p, ...(!p.bucket && p.children.length ? shown(p) : [])]);
+    const k = Math.min(UNIT_MAX, BIG_H / Math.max(1, ...firstCols.map((x) => gsize(x) - 1)));
+    const h = (x) => MIN_H + k * (gsize(x) - 1);
+    const blocks = [];
+    const bands = [];
+    const firsts = [];
+    let y = 0;
+    for (const p of shown(f)) {
+      const under = !p.bucket && p.children.length ? shown(p) : [];
+      if (!under.length) {
+        const pb = { x: p, col: 1, top: y, h: h(p) };
+        blocks.push(pb); firsts.push(pb);
+        y += pb.h + GROUP_GAP;
+        continue;
+      }
+      const hs = under.map(h);
+      const sum = hs.reduce((a, v) => a + v, 0);
+      const span = sum + IN_GAP * (hs.length - 1);
+      const ph = Math.min(span, h(p));
+      const pb = { x: p, col: 1, top: y + (span - ph) / 2, h: ph };
+      blocks.push(pb); firsts.push(pb);
+      let cy = y;
+      let sy = pb.top;
+      under.forEach((c, i) => {
+        const sh = (ph * hs[i]) / sum;
+        blocks.push({ x: c, col: 2, top: cy, h: hs[i] });
+        bands.push({ from: [X[1] + W[1], sy, sy + sh], to: [X[2], cy, cy + hs[i]], x: c });
+        sy += sh;
+        cy += hs[i] + IN_GAP;
+      });
+      y += span + GROUP_GAP;
+    }
+    const total = Math.max(MIN_H, y - GROUP_GAP);
+    // the parent runs the full height, so its name sits at the top beside its first child
+    const rh = total;
+    const rb = { x: f, col: 0, top: 0, h: rh, focus: true };
+    const fsum = firsts.reduce((a, b) => a + b.h, 0);
+    let sy = rb.top;
+    firsts.forEach((b) => {
+      const sh = (rh * b.h) / fsum;
+      bands.push({ from: [W[0], sy, sy + sh], to: [X[1], b.top, b.top + b.h], x: b.x });
+      sy += sh;
+    });
+    blocks.push(rb);
+    cur = blocks;
+    const width = X[2] + W[2];
+    const deep = blocks.some((b) => b.col === 2);
+    $('#o-cols', root).style.width = `${width}px`;
+    $('#o-cols', root).innerHTML = ['Parent', 'Children: owned directly', 'Grandchildren: owned by the children']
+      .slice(0, deep ? 3 : 2).map((txt, i) => `<span style="left:${X[i]}px;width:${W[i]}px">${txt}</span>`).join('');
+    gel.style.width = `${width}px`;
+    gel.style.height = `${total}px`;
+    gel.innerHTML = `<svg width="${width}" height="${total}" aria-hidden="true">${bands.map(band).join('')}</svg>${blocks.map((b, i) => block(b, i, X, W)).join('')}`;
+    $('#o-title', root).textContent = groupsTitle(f);
+    const path = pathOf(f);
+    $('#o-trail', root).innerHTML = path.length > 1
+      ? `Showing: ${path.map((n, i) => (i === path.length - 1 ? `<b>${esc(n.name)}</b>` : `<a href="#" data-up="${i}">${esc(n.name)}</a>`)).join(' › ')}`
+      : '';
+  }
+
+  function zoom(n) {
+    state.focus = n;
+    state.pick = null;
+    $('#o-pick', root).innerHTML = '';
+    drawGroups();
+    gbox.scrollLeft = 0;
+    const fig = $('#o-fig', root);
+    if (fig.getBoundingClientRect().top < 0) fig.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    gel.querySelector('.og-b.focus')?.focus({ preventScroll: true });
+  }
+
+  function pick(x) {
+    state.pick = x;
+    drawGroups();
+    const out = $('#o-pick', root);
+    if (x.bucket) {
+      out.innerHTML = `<div class="og-pick"><h4>${int(x.items.length)} companies owned by ${esc(x.parent.name)} that own no other companies</h4>
+        ${table([{ label: 'Company', value: (n) => n.name }, { label: 'Share held', num: true, value: (n) => (n.pct == null ? '' : `${n.pct}%`) }, { label: 'Page', num: true, value: (n) => n.page }], x.items)}</div>`;
+    } else {
+      const up = parent.get(x);
+      out.innerHTML = `<div class="og-pick"><h4>${esc(x.name)}</h4>
+        <p>${x.pct == null ? '' : `${x.pct}% held by ${esc(up.name)}. `}Owns no other companies. ${esc(below(x))} · ${esc(x.link || '')} · page ${x.page} of the source table.</p></div>`;
+    }
+    out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function showInGroups(n) {
+    state.target = n;
+    const path = pathOf(n);
+    state.focus = path.length > 2 ? path[path.length - 3] : o.tree;
+    state.pick = null;
+    $('#o-pick', root).innerHTML = '';
+    drawGroups();
+    gel.querySelector('.og-b.hit')?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+  }
+
+  gel.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('.og-b');
+    if (!btn) return;
+    const b = cur[Number(btn.dataset.b)];
+    if (b.focus) { if (b.x !== o.tree) zoom(parent.get(b.x)); return; }
+    if (!b.x.bucket && b.x.children.length) zoom(b.x);
+    else pick(b.x);
+  });
+  $('#o-trail', root).addEventListener('click', (ev) => {
+    const a = ev.target.closest('a[data-up]');
+    if (!a) return;
+    ev.preventDefault();
+    zoom(pathOf(state.focus)[Number(a.dataset.up)]);
+  });
+
   // ---- List: the same tree as native <details>, which opens with the keyboard and is read out by screen readers.
   const row = (n) => `<span id="o-${ids.get(n)}"><span class="dot" style="background:${TYPE_COLORS[n.link] || '#667085'}" title="${esc(n.link || '')}"></span>${esc(n.name)}${n.pct == null ? '' : ` <span class="o-pct">${n.pct}%</span>`} <span class="muted small">p. ${n.page}${n.children.length ? ` · owns ${n.children.length}` : ''}</span></span>`;
   const item = (n) => (n.children.length
@@ -207,12 +388,32 @@ export async function render(root, params) {
     at.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
+  const HOW = {
+    groups: `Read left to right: the parent company, the companies it owns directly (its <b>children</b>), and the companies those
+      own (its <b>grandchildren</b>). A ribbon joins each owner to what it owns. A taller block has more companies in its group.
+      <b>Click a company</b> to make it the parent and see the two levels below it. Click the parent block on the left, or a name
+      after “Showing”, to go back up. A <b>grey block</b> gathers companies that own no others: click it to list them. The colour is
+      the link type as labelled in the source table.`,
+    drill: `Each line joins a company to a company it holds, with the share it holds. A <b>filled dot</b> owns more
+      companies: click it to open that branch, and click it again to close it. A <b>hollow dot</b> owns nothing further.
+      “120 below” counts every company further down that branch, at every level. The biggest branches are listed first. The colour is the
+      link type as labelled in the source table.`,
+    list: 'The same tree as a list. Click a company to open what it owns. This view works with the keyboard and screen readers.',
+  };
+  const TITLE = {
+    drill: `Brookfield Corporation holds ${int(st.direct_children)} companies directly. Click any company with a filled dot to see what it owns.`,
+    list: `Every company in the group, under the company that owns it (${int(st.links)} links).`,
+  };
+
   function setView(v) {
     state.view = v;
     root.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
-    box.hidden = v !== 'diagram';
+    $('#o-groups-box', root).hidden = v !== 'groups';
+    box.hidden = v !== 'drill';
     $('#o-list', root).hidden = v !== 'list';
-    if (v === 'list') buildList(); else draw();
+    $('#o-how', root).innerHTML = HOW[v];
+    if (v !== 'groups') $('#o-title', root).textContent = TITLE[v];
+    if (v === 'list') buildList(); else if (v === 'drill') draw(); else drawGroups();
     save();
   }
 
@@ -229,7 +430,7 @@ export async function render(root, params) {
       if (!a) return;
       ev.preventDefault();
       const n = hits[Number(a.dataset.hit)];
-      if (state.view === 'list') showInList(n); else showInDiagram(n);
+      if (state.view === 'list') showInList(n); else if (state.view === 'drill') showInDiagram(n); else showInGroups(n);
     };
   }
 
@@ -246,7 +447,10 @@ export async function render(root, params) {
   $('#o-reset', root).addEventListener('click', () => {
     state.open = [o.tree];
     state.target = null;
-    draw();
+    state.focus = o.tree;
+    state.pick = null;
+    $('#o-pick', root).innerHTML = '';
+    if (state.view === 'drill') draw(); else if (state.view === 'groups') drawGroups();
     root.querySelectorAll('#o-list details').forEach((d, i) => { d.open = i === 0; });
     root.querySelectorAll('#o-list .hit').forEach((x) => x.classList.remove('hit'));
   });
