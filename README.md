@@ -1,5 +1,9 @@
 # Evidence Archive Map
 
+**All of the data comes from Vesper Digital's work:** the documents Vesper collected and published in the
+[Evidence-Archive](https://github.com/Vesper-Digital/Evidence-Archive). Watch Vesper on
+[YouTube](https://www.youtube.com/@Vesperdigital).
+
 An interactive map of the public [Vesper-Digital/Evidence-Archive](https://github.com/Vesper-Digital/Evidence-Archive)
 repository. It shows who connects to whom, where the money goes, and the exact archive file behind every fact.
 
