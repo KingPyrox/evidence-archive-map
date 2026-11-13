@@ -1,6 +1,6 @@
 import { loadAll } from '../services/data.js';
 import { esc, int, fileName } from '../helpers/format.js';
-import { $, table, ext, setParams, figure, inShort } from '../helpers/dom.js';
+import { $, table, ext, setParams, figure } from '../helpers/dom.js';
 import { chart } from '../helpers/chart.js';
 
 export const title = 'Who owns what';
@@ -37,7 +37,6 @@ export async function render(root, params) {
   const levels = Object.keys(st.by_level).map(Number).sort((a, b) => a - b);
   const deepest = levels[levels.length - 1] - 1;
   const widest = levels.reduce((a, l) => (st.by_level[l] > st.by_level[a] ? l : a), levels[0]);
-  const biggest = kids(o.tree)[0];
   const state = { q: params.q || '', view: params.view === 'list' ? 'list' : 'diagram', open: [o.tree], target: null };
   const src = ext(o.url, fileName(o.file));
   const save = () => setParams({ q: state.q, view: state.view === 'list' ? 'list' : '' });
@@ -46,11 +45,12 @@ export async function render(root, params) {
     <h1>Who owns what: Brookfield Corporation</h1>
     <p class="lead">The “Who Runs Canada” case has a 43-page table of Brookfield Corporation's published ownership structure
       (reference year 2025). It lists every company in the group and the share its parent company holds.</p>
-    ${inShort([
-      `<b>${int(st.distinct_entities)} companies</b> sit under Brookfield Corporation, joined by ${int(st.links)} ownership links.`,
-      `Brookfield holds <b>${int(st.direct_children)}</b> of them directly. The rest are held through those, up to <b>${deepest} levels</b> down.`,
-      `The biggest branch is <b>${esc(biggest.name)}</b>, with ${int(sizeOf(biggest))} companies below it.`,
-    ])}
+    <div class="stats">
+      <div class="stat"><b>${int(st.links)}</b><span>ownership links below the root</span></div>
+      <div class="stat"><b>${int(st.distinct_entities)}</b><span>distinct company names</span></div>
+      <div class="stat"><b>${int(st.direct_children)}</b><span>companies held directly</span></div>
+      <div class="stat"><b>${deepest}</b><span>levels below Brookfield, at the deepest</span></div>
+    </div>
     <div class="controls">
       <label>Find a company <input id="o-q" type="search" value="${esc(state.q)}" placeholder="e.g. Enercare, Brookfield Renewable"></label>
       <div class="seg" role="group" aria-label="Show the ownership tree as">

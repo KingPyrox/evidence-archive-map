@@ -1,6 +1,6 @@
 import { loadAll } from '../services/data.js';
 import { esc, int } from '../helpers/format.js';
-import { ext, inShort } from '../helpers/dom.js';
+import { ext } from '../helpers/dom.js';
 import { EDGE_KINDS } from '../enums/kinds.js';
 import { GLOSSARY, GLOSSARY_SOURCE } from '../enums/glossary.js';
 
@@ -29,21 +29,15 @@ export async function render(root) {
       </div>
     </section>
 
-    ${inShort([
-      'A line between two names means a document in the archive connects them. It does <b>not</b> mean anyone did anything wrong.',
-      'Each figure links to the file it came from. If a number looks wrong, the file is one click away.',
-      'The site checks Vesper\'s archive for changes once a day and rebuilds itself when something new is added.',
-    ])}
-
     <h2>Words used on this site</h2>
-    <p>Government budget records use a lot of special words. Here they are in plain language. On every page, a word with a
-      dotted underline shows its meaning when you point at it or tap it.</p>
+    <p>Government budget records use a lot of special words. Here they are in plain language.</p>
     <dl class="glossary">${Object.values(GLOSSARY).map((g) => `<div><dt>${esc(g.word)}</dt><dd>${esc(g.means)}</dd></div>`).join('')}</dl>
     <p class="small muted">The Estimates words follow the ${ext(GLOSSARY_SOURCE, 'Treasury Board of Canada Secretariat')}.</p>
 
     <h2>Kinds of evidence</h2>
     <ul>${['data', 'stated', 'computed'].map((k) => `<li><b>${esc(EDGE_KINDS[k].label)}:</b> ${esc(EDGE_KINDS[k].help)}</li>`).join('')}</ul>
-    <p>Claims from case titles and video titles appear as <b>claims</b>. They link to the documents that support or test them.</p>
+    <p>Claims from case titles and video titles appear as <b>claims</b>. They link to the documents that support or test them.
+      A line between two names means a document in the archive connects them. It does not mean anyone did anything wrong.</p>
 
     <h2>How the data is made</h2>
     <ol>
@@ -52,7 +46,7 @@ export async function render(root) {
       <li><b>Hand transcription.</b> Slides and images can't be read automatically. Facts from them are typed in by hand with
         the file and slide number, and quoted word for word.</li>
       <li><b>Checks.</b> The build cross-checks totals, row counts and published figures, and reports any difference it finds
-        on the <a href="#/sources">Sources</a> page.</li>
+        on the <a href="#/sources">Sources</a> page. The site checks Vesper's archive for changes once a day.</li>
     </ol>
 
     <h2>Limits</h2>
