@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Evidence Archive Map</title>
+  <meta name="description" content="Explore the documents in the Evidence-Archive: who is connected to whom, where the money goes, and where every fact comes from.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip" href="#app">Skip to content</a>
+  <header class="site-header">
+    <div class="inner">
+      <a class="brand" href="#/">Evidence Archive <span>Map</span></a>
+      <span class="tagline">See the connections. Check every source.</span>
+    </div>
+    <nav class="main-nav" aria-label="Main">
+      <a href="#/" data-route="">Overview</a>
+      <a href="#/map" data-route="map">Connection map</a>
+      <a href="#/money" data-route="money">Money flows</a>
+      <a href="#/spending" data-route="spending">Federal spending</a>
+      <a href="#/lobbying" data-route="lobbying">Lobbying</a>
+      <a href="#/ownership" data-route="ownership">Corporate ownership</a>
+      <a href="#/timeline" data-route="timeline">Timeline</a>
+      <a href="#/survey" data-route="survey">Survey check</a>
+      <a href="#/sources" data-route="sources">Sources &amp; checks</a>
+      <a href="#/about" data-route="about">About</a>
+    </nav>
+  </header>
+  <main id="app" tabindex="-1"><p class="loading">Loading…</p></main>
+  <footer class="site-footer">
+    <div class="inner" id="footer">
+      Built from the public <a href="https://github.com/Vesper-Digital/Evidence-Archive" target="_blank" rel="noopener">Vesper-Digital/Evidence-Archive</a> repository.
+      Every figure links back to the archive file it came from.
+    </div>
+  </footer>
+  <script src="vendor/echarts.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

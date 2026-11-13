@@ -1,0 +1,1387 @@
+{
+  "_about": "Hand-transcribed facts from the Evidence-Archive that cannot be parsed automatically (slide images, PDF timelines). Every node, edge, event and claim carries a src pointing at the archive file it came from. '@key/' prefixes expand to the folder in 'folders'. Edit this file, then run pipeline/build_data.py.",
+  "folders": {
+    "del": "Deleted Federal Records",
+    "imm": "Immigration Policy-The U.N Agenda- IRCC Spending Billions",
+    "drn": "The Rules That Vanished _ Dangerous A.I Military Drones",
+    "tim": "Tim Caulfied  Government Funded Misinformation Guru Who Got It Wrong",
+    "brk": "Who Runs Canada_Brookfield Corp",
+    "tbl": "Tables"
+  },
+  "cases": [
+    {
+      "id": "case:deleted-records",
+      "folder": "@del",
+      "title": "Deleted COVID Federal Estimate Records",
+      "headline": "Deleted COVID Federal Estimate Records | I Recovered Them!",
+      "date": "2026-11-06",
+      "video": "kFPYXB-KUts",
+      "summary": "The deleted federal estimates tables from 2019-2022 and the available tables up to 2026.",
+      "datasets": [
+        "dataset:estimates"
+      ]
+    },
+    {
+      "id": "case:misinformation",
+      "folder": "@tim",
+      "title": "Tim Caulfield: Government Funded Misinformation Guru",
+      "headline": "CANADA'S MISINFORMATION EXPERT | $3.38M in Federal Grants & The His Stats Don't Add Up!",
+      "date": "2026-11-07",
+      "video": "ww2Jk5mrvro",
+      "summary": "Compares a Statistics Canada article on COVID-19 misinformation with the survey microdata and questionnaire behind it.",
+      "datasets": [
+        "dataset:pumf",
+        "dataset:statcan-tally"
+      ]
+    },
+    {
+      "id": "case:immigration",
+      "folder": "@imm",
+      "title": "Canada's Immigration Policy | The U.N Agenda | IRCC Spending",
+      "headline": "CARNEY'S MIGRANT AGENDA | The UN, The Money & The Connections EXPOSED!",
+      "date": "2026-11-07",
+      "video": "zCGAcQUOpS0",
+      "video_note": "The archive links this case to zCGAcQUOpS0, which videos.json lists as the A.I. drones livestream. The immigration video itself is not in videos.json.",
+      "summary": "IRCC spending estimates, IRCC grants to the IOM and UNHCR, the resettlement consultations chair, Express Entry / LMIA changes, and non-permanent resident counts.",
+      "datasets": [
+        "dataset:estimates"
+      ]
+    },
+    {
+      "id": "case:drones",
+      "folder": "@drn",
+      "title": "The Rules That Vanished: Dangerous A.I. Military Drones",
+      "headline": "A.I Military Drones & Canada Voted For Less Security Rules At UN",
+      "date": "2026-11-08",
+      "video": "zCGAcQUOpS0",
+      "related_videos": [
+        "hfhN27FJHS4"
+      ],
+      "summary": "A 13-step timeline (May to November 2026): Canada-Türkiye defence ties, the UN debate on autonomous weapons, the Defence Drone Initiative and Budget 2026.",
+      "datasets": [
+        "dataset:lobby-drones"
+      ]
+    },
+    {
+      "id": "case:brookfield",
+      "folder": "@brk",
+      "title": "Who Runs Canada: Brookfield Corp",
+      "headline": "Uncovering Canada's Corporate Empire",
+      "date": "2026-11-11",
+      "video": "PLFE1ziuf8g",
+      "related_videos": [
+        "opyazKVN3Rs"
+      ],
+      "summary": "Brookfield Corporation's published inter-corporate ownership structure (reference year 2025, 1,102 published ownership links).",
+      "datasets": [
+        "dataset:brookfield-ownership"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "org:goc",
+      "type": "government",
+      "label": "Government of Canada",
+      "summary": "Federal government, as actor in the UN negotiation and in federal spending."
+    },
+    {
+      "id": "org:ircc",
+      "type": "government",
+      "label": "IRCC",
+      "full": "Immigration, Refugees and Citizenship Canada (Estimates name: Department of Citizenship and Immigration)",
+      "aliases": [
+        "Immigration, Refugees and Citizenship Canada (IRCC)",
+        "Immigration, Refugees and Citizenship Canada",
+        "Department of Citizenship and Immigration"
+      ]
+    },
+    {
+      "id": "org:esdc",
+      "type": "government",
+      "label": "ESDC",
+      "full": "Employment and Social Development Canada",
+      "aliases": [
+        "Employment and Social Development Canada (ESDC)",
+        "Employment and Social Development Canada"
+      ]
+    },
+    {
+      "id": "org:statcan",
+      "type": "government",
+      "label": "Statistics Canada",
+      "aliases": [
+        "Statistics Canada (StatCan)",
+        "Statistics Canada"
+      ]
+    },
+    {
+      "id": "org:tbs",
+      "type": "government",
+      "label": "Treasury Board Secretariat",
+      "full": "Treasury Board of Canada Secretariat",
+      "aliases": [
+        "Treasury Board Of Canada Secretariat (TBS)",
+        "Treasury Board of Canada Secretariat (TBS)",
+        "Treasury Board Secretariat"
+      ]
+    },
+    {
+      "id": "org:dnd",
+      "type": "government",
+      "label": "National Defence",
+      "full": "Department of National Defence / Canadian Armed Forces",
+      "aliases": [
+        "National Defence (DND)",
+        "Department of National Defence",
+        "Canadian Armed Forces (CAF)"
+      ]
+    },
+    {
+      "id": "org:pmo",
+      "type": "government",
+      "label": "Prime Minister's Office",
+      "aliases": [
+        "Prime Minister's Office (PMO)"
+      ]
+    },
+    {
+      "id": "org:gac",
+      "type": "government",
+      "label": "Global Affairs Canada",
+      "aliases": [
+        "Global Affairs Canada (GAC)"
+      ]
+    },
+    {
+      "id": "org:ised",
+      "type": "government",
+      "label": "ISED",
+      "full": "Innovation, Science and Economic Development Canada",
+      "aliases": [
+        "Innovation, Science and Economic Development Canada (ISED)"
+      ]
+    },
+    {
+      "id": "org:fin",
+      "type": "government",
+      "label": "Finance Canada",
+      "aliases": [
+        "Finance Canada (FIN)"
+      ]
+    },
+    {
+      "id": "org:pspc",
+      "type": "government",
+      "label": "PSPC",
+      "full": "Public Services and Procurement Canada",
+      "aliases": [
+        "Public Services and Procurement Canada (PSPC)"
+      ]
+    },
+    {
+      "id": "org:hoc",
+      "type": "government",
+      "label": "House of Commons",
+      "aliases": [
+        "House of Commons"
+      ]
+    },
+    {
+      "id": "org:cihr",
+      "type": "government",
+      "label": "CIHR",
+      "full": "Canadian Institutes of Health Research | Instituts de recherche en santé du Canada (IRSC)"
+    },
+    {
+      "id": "org:iom",
+      "type": "international",
+      "label": "IOM",
+      "full": "International Organization for Migration | Organisation Internationale Pour Les Migrations"
+    },
+    {
+      "id": "org:unhcr",
+      "type": "international",
+      "label": "UNHCR",
+      "full": "The Office of the United Nations High Commissioner for Refugees | L'Agence des Nations Unies pour les réfugiés"
+    },
+    {
+      "id": "org:un",
+      "type": "international",
+      "label": "United Nations"
+    },
+    {
+      "id": "org:unoda",
+      "type": "international",
+      "label": "UN Office for Disarmament Affairs"
+    },
+    {
+      "id": "org:icrc",
+      "type": "international",
+      "label": "ICRC",
+      "full": "International Committee of the Red Cross"
+    },
+    {
+      "id": "org:eu",
+      "type": "international",
+      "label": "European Union",
+      "full": "European Union / European Commission (Presidents Ursula von der Leyen and António Costa)"
+    },
+    {
+      "id": "org:wef",
+      "type": "international",
+      "label": "World Economic Forum"
+    },
+    {
+      "id": "org:kraken",
+      "type": "company",
+      "label": "Kraken Robotics",
+      "summary": "Canadian company. Held Canadian Navy contracts announced in 2022 worth up to C$57.9 million."
+    },
+    {
+      "id": "org:sefine",
+      "type": "company",
+      "label": "SEFINE",
+      "summary": "Turkish company (shipyard). MOU with Kraken Robotics, May 6, 2026."
+    },
+    {
+      "id": "org:ciel",
+      "type": "company",
+      "label": "CIEL Defence",
+      "summary": "Canadian (CIEL Capital). Agreement with ASELSAN signed Oct 23, announced Oct 29, 2026."
+    },
+    {
+      "id": "org:aselsan",
+      "type": "company",
+      "label": "ASELSAN",
+      "summary": "Turkish defence company."
+    },
+    {
+      "id": "org:brookfield",
+      "type": "company",
+      "label": "Brookfield Corporation",
+      "summary": "Group root of a published inter-corporate ownership structure with 1,102 links (reference year 2025)."
+    },
+    {
+      "id": "org:vesper",
+      "type": "publisher",
+      "label": "Vesper Digital",
+      "summary": "Publisher of the Evidence-Archive and the DSX (DeepSearchX) record cards and tables."
+    },
+    {
+      "id": "org:wayback",
+      "type": "publisher",
+      "label": "Internet Archive",
+      "summary": "Wayback Machine captures used to recover deleted Treasury Board CSV files."
+    },
+    {
+      "id": "country:turkiye",
+      "type": "country",
+      "label": "Türkiye"
+    },
+    {
+      "id": "country:ukraine",
+      "type": "country",
+      "label": "Ukraine"
+    },
+    {
+      "id": "person:carney",
+      "type": "person",
+      "label": "Mark Carney",
+      "summary": "Prime Minister of Canada (as named in the archive's sources)."
+    },
+    {
+      "id": "person:erdogan",
+      "type": "person",
+      "label": "Recep Tayyip Erdoğan",
+      "summary": "President of Türkiye."
+    },
+    {
+      "id": "person:diab",
+      "type": "person",
+      "label": "Lena Metlege Diab",
+      "summary": "Minister of Immigration, Refugees and Citizenship (IRCC news release, Oct 16, 2026)."
+    },
+    {
+      "id": "person:guterres",
+      "type": "person",
+      "label": "António Guterres",
+      "summary": "UN Secretary-General since January 2017 (slide 28 text card)."
+    },
+    {
+      "id": "person:garneau-zossou",
+      "type": "person",
+      "label": "Karine Garneau & Clémence Zossou",
+      "summary": "Authors of the Statistics Canada article 'Misinformation During the COVID-19 Pandemic' (Feb 2, 2021)."
+    },
+    {
+      "id": "person:caulfield",
+      "type": "person",
+      "label": "Tim Caulfield",
+      "summary": "Named in the case title. The text documents in the case (StatCan article, survey zip, tally spreadsheet) do not name him."
+    },
+    {
+      "id": "program:resettlement",
+      "type": "program",
+      "label": "Resettlement & Complementary Pathways",
+      "summary": "Canada assumes Chair of the Consultations on Resettlement and Complementary Pathways in 2026-2027 (IRCC briefing note 2026-01388924). IRCC grants to IOM and UNHCR fund resettlement activities."
+    },
+    {
+      "id": "program:irsi",
+      "type": "program",
+      "label": "Immigrant & Refugee Selection and Integration",
+      "summary": "IRCC program. FY 2026-27 Main Estimates: $3,423,546,530."
+    },
+    {
+      "id": "program:express-entry",
+      "type": "program",
+      "label": "Express Entry / CRS",
+      "summary": "Comprehensive Ranking System. Changes effective November 3, 2026. Provincial or territorial nomination = 600 points."
+    },
+    {
+      "id": "program:lmia",
+      "type": "program",
+      "label": "LMIA / TFW Program",
+      "summary": "Labour Market Impact Assessment (ESDC form EMP5626). From Nov 3, 2026 no longer required for a qualifying Express Entry job offer."
+    },
+    {
+      "id": "program:ddi",
+      "type": "program",
+      "label": "Defence Drone Initiative",
+      "summary": "Announced July 23, 2026: armed drones, counter-drone systems, precision-strike technology. Budget 2026 proposes C$2.3B over five years from 2027-28."
+    },
+    {
+      "id": "program:budget2026",
+      "type": "program",
+      "label": "Budget 2026",
+      "summary": "Tabled November 5, 2026. Chapter 5: Defence Drone Initiative."
+    },
+    {
+      "id": "program:laws-talks",
+      "type": "program",
+      "label": "UN talks on autonomous weapons",
+      "summary": "2026 UN negotiating sessions on lethal autonomous weapons. Paragraph 34 (the proposed ban) removed by the chair on September 3, 2026."
+    },
+    {
+      "id": "program:eu-sdp",
+      "type": "program",
+      "label": "EU-Canada Security & Defence Partnership",
+      "summary": "Signed at the 20th EU-Canada summit (June 2025). Opens talks on Canadian access to SAFE, Europe's joint arms procurement initiative."
+    },
+    {
+      "id": "program:cpss4",
+      "type": "program",
+      "label": "CPSS Series 4 survey (2020)",
+      "summary": "Canadian Perspectives Survey Series 4: Information Sources Consulted During the Pandemic. Online panel, July 20-26, 2020."
+    },
+    {
+      "id": "dataset:estimates",
+      "type": "dataset",
+      "label": "Recovered federal Estimates tables",
+      "summary": "Federal Estimates Deleted.7z: Main and Supplementary (A/B/C) Estimates CSV tables 2019-20 to 2026-27, plus COVID expenditure workbooks."
+    },
+    {
+      "id": "dataset:pumf",
+      "type": "dataset",
+      "label": "CPSS4 public-use microdata",
+      "summary": "4,218 respondent records with survey weights (PERS_WGT), in Government Questionaires and Findings.zip."
+    },
+    {
+      "id": "dataset:statcan-tally",
+      "type": "dataset",
+      "label": "Archive tally of question FC_Q25",
+      "summary": "misinformation Statscan.xlsx: unweighted counts of answers to FC_Q25."
+    },
+    {
+      "id": "dataset:npr",
+      "type": "dataset",
+      "label": "StatCan non-permanent resident tables",
+      "summary": "Tables 17-10-0121-01 and 17-10-0158-01 (released 2026-09-23)."
+    },
+    {
+      "id": "dataset:job-vacancies",
+      "type": "dataset",
+      "label": "StatCan job vacancies (2026)",
+      "summary": "Health-occupation vacancies fell to 62,700 in Q1 2026, the lowest since Q1 2020."
+    },
+    {
+      "id": "dataset:brookfield-ownership",
+      "type": "dataset",
+      "label": "Brookfield ownership table",
+      "summary": "DSX table: 'GOVERNMENT OF CANADA RECORD, CORP & FINANCE, INTER-CORPORATE OWNERSHIP', REF 1247, 43 pages."
+    },
+    {
+      "id": "dataset:lobby-drones",
+      "type": "dataset",
+      "label": "Lobbying Registry: Drones 2026",
+      "summary": "DSX table of Lobbying Registry records matching DRONES, May 1 to Nov 30, 2026."
+    },
+    {
+      "id": "dataset:lobby-telesat",
+      "type": "dataset",
+      "label": "Lobbying Registry: Telesat 2026",
+      "summary": "DSX table of Lobbying Registry records matching TELESAT, 2026."
+    },
+    {
+      "id": "dataset:lobby-roshel",
+      "type": "dataset",
+      "label": "Lobbying Registry: Roshel 2026",
+      "summary": "DSX table of Lobbying Registry records matching ROSHEL, from Jan 1, 2026."
+    },
+    {
+      "id": "dataset:lobby-stelco",
+      "type": "dataset",
+      "label": "Lobbying Registry: Stelco 2026",
+      "summary": "DSX table of Lobbying Registry records matching STELCO, 2026."
+    },
+    {
+      "id": "claim:deleted",
+      "type": "claim",
+      "label": "Estimates tables were deleted",
+      "summary": "Claim: canada.ca deleted the machine-readable Estimates tables. The master index lists 2022-23 forward only."
+    },
+    {
+      "id": "claim:caulfield-grants",
+      "type": "claim",
+      "label": "\"$3.38M in Federal Grants\"",
+      "summary": "Video-title claim. The case thumbnail shows three CIHR grant cards that add up to $3,381,708. The grant records themselves are not in the archive, and the cards do not name a recipient."
+    },
+    {
+      "id": "claim:stats-dont-add-up",
+      "type": "claim",
+      "label": "\"The stats don't add up\"",
+      "summary": "Video-title claim, based on the archive's unweighted tally of FC_Q25. See the Survey check page."
+    },
+    {
+      "id": "claim:canada-weaken",
+      "type": "claim",
+      "label": "Canada asked the UN to weaken the ban",
+      "summary": "Canada proposed changing SHALL to MAY or SHOULD (UN transcript, Sept 2, 2026)."
+    },
+    {
+      "id": "claim:ircc-billions",
+      "type": "claim",
+      "label": "IRCC spending billions",
+      "summary": "FY 2026-27: IRCC total $4,416,881,617; Immigrant and Refugee Selection and Integration $3,423,546,530."
+    }
+  ],
+  "edges": [
+    {
+      "from": "org:ircc",
+      "to": "org:iom",
+      "label": "Grant $203,091,020.00 (Mar 29, 2021 - Mar 31, 2025)",
+      "kind": "data",
+      "amount": 203091020.0,
+      "src": {
+        "doc": "@imm/Images/4.webp",
+        "loc": "slide 4",
+        "quote": "Support to IOM for Canada's Resettlement and Complementary Pathways Activities Globally. Agreement G228665001, ref 094-2023-2024-Q4-G228665001."
+      },
+      "money": "IRCC grant (amended), 2021 to 2025"
+    },
+    {
+      "from": "org:ircc",
+      "to": "org:iom",
+      "label": "Grant $115,798,590.00 (Jan 31, 2025 - Mar 31, 2028)",
+      "kind": "data",
+      "amount": 115798590.0,
+      "src": {
+        "doc": "@imm/Images/5.webp",
+        "loc": "slide 5",
+        "quote": "IOM Global Resettlement and Complementary Pathways Activities. Agreement G258665002, ref 094-2025-2026-Q4-G258665002."
+      },
+      "money": "IRCC grant (amended), 2025 to 2028"
+    },
+    {
+      "from": "org:ircc",
+      "to": "org:unhcr",
+      "label": "Grant $24,485,713.20 (Mar 29, 2021 - Mar 31, 2025)",
+      "kind": "data",
+      "amount": 24485713.2,
+      "src": {
+        "doc": "@imm/Images/26.webp",
+        "loc": "slide 26",
+        "quote": "Support to UNHCR for Global Resettlement Activities. Agreement G228665002, ref 094-2023-2024-Q4-G228665002."
+      },
+      "money": "IRCC grant (amended), 2021 to 2025"
+    },
+    {
+      "from": "org:iom",
+      "to": "org:unhcr",
+      "label": "Sequential agreement numbers G228665001 / G228665002, same dates and project text",
+      "kind": "computed",
+      "src": {
+        "doc": "@imm/Images/26.webp",
+        "loc": "slides 4 and 26",
+        "quote": "Both start March 29, 2021, end March 31, 2025; project 'Client Services'."
+      }
+    },
+    {
+      "from": "org:ircc",
+      "to": "program:resettlement",
+      "label": "Assumes Chair of the Consultations, 2026-2027",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/20.webp",
+        "loc": "slides 1 and 20",
+        "quote": "Briefing Note: Canada Assuming Chair of the Consultations on Resettlement and Complementary Pathways in 2026-2027. Received Jun 10, 2026. Reference Number 2026-01388924."
+      }
+    },
+    {
+      "from": "org:iom",
+      "to": "program:resettlement",
+      "label": "Funded for resettlement activities",
+      "kind": "data",
+      "src": {
+        "doc": "@imm/Images/4.webp",
+        "loc": "slides 4-5"
+      }
+    },
+    {
+      "from": "org:unhcr",
+      "to": "program:resettlement",
+      "label": "Funded for global resettlement activities",
+      "kind": "data",
+      "src": {
+        "doc": "@imm/Images/26.webp",
+        "loc": "slide 26"
+      }
+    },
+    {
+      "from": "org:unhcr",
+      "to": "org:un",
+      "label": "UN agency (by name)",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/26.webp",
+        "loc": "slide 26"
+      }
+    },
+    {
+      "from": "org:ircc",
+      "to": "program:irsi",
+      "label": "$3,423,546,530 (FY 2026-27 Main Estimates)",
+      "kind": "data",
+      "amount": 3423546530,
+      "src": {
+        "doc": "@imm/Images/3.webp",
+        "loc": "slide 3",
+        "quote": "Expenditures by Purpose, Table 1. ORIGINAL annual estimate. REF ROW 184."
+      },
+      "money": "Main Estimates FY 2026-27, one IRCC program"
+    },
+    {
+      "from": "org:ircc",
+      "to": "claim:ircc-billions",
+      "label": "FY 2026-27 total $4,416,881,617",
+      "kind": "data",
+      "src": {
+        "doc": "@imm/Images/2.webp",
+        "loc": "slide 2",
+        "quote": "Total spending across standard objects, Main Estimates, FY 2026-27. REF ROW 46."
+      },
+      "amount": 4416881617,
+      "money": "Main Estimates FY 2026-27, IRCC department total"
+    },
+    {
+      "from": "dataset:estimates",
+      "to": "claim:ircc-billions",
+      "label": "Both figures reproduced from the 2026-27 (A) tables",
+      "kind": "computed",
+      "src": {
+        "doc": "@del/Files/Federal Estimates Deleted.7z",
+        "loc": "2026-27/A organization-summary and expenditures-program-purpose"
+      }
+    },
+    {
+      "from": "person:diab",
+      "to": "org:ircc",
+      "label": "Minister",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/15.webp",
+        "loc": "slides 15-16"
+      }
+    },
+    {
+      "from": "person:diab",
+      "to": "program:express-entry",
+      "label": "Announced CRS changes, Oct 16, 2026",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/15.webp",
+        "loc": "slides 15-16",
+        "quote": "Starting November 3, 2026, IRCC will award additional points to candidates with eligible Canadian work experience or a qualifying job offer in a high-wage occupation."
+      }
+    },
+    {
+      "from": "org:ircc",
+      "to": "program:express-entry",
+      "label": "Runs",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/9.webp",
+        "loc": "slides 9-12"
+      }
+    },
+    {
+      "from": "program:express-entry",
+      "to": "program:lmia",
+      "label": "LMIA no longer required for qualifying job offers (Nov 3, 2026)",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/9.webp",
+        "loc": "slides 9 and 16",
+        "quote": "As of November 3, 2026, a labour market impact assessment (LMIA) will no longer be required for a qualifying job offer to receive the new Express Entry points."
+      }
+    },
+    {
+      "from": "org:esdc",
+      "to": "program:lmia",
+      "label": "Administers (form EMP5626)",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Files/DEPRECATED LMIA FORM -ESDC-EMP5626.pdf",
+        "loc": "p. 1",
+        "quote": "ESDC EMP5626 (2022-05-004) E. LABOUR MARKET IMPACT ASSESSMENT APPLICATION, HIGH-WAGE POSITIONS."
+      }
+    },
+    {
+      "from": "org:statcan",
+      "to": "dataset:npr",
+      "label": "Publishes",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/23.webp",
+        "loc": "slides 23-25"
+      }
+    },
+    {
+      "from": "org:statcan",
+      "to": "dataset:job-vacancies",
+      "label": "Publishes",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/13.webp",
+        "loc": "slides 13-14"
+      }
+    },
+    {
+      "from": "dataset:job-vacancies",
+      "to": "program:express-entry",
+      "label": "Shown alongside the Express Entry changes",
+      "kind": "computed",
+      "src": {
+        "doc": "@imm/Images/13.webp",
+        "loc": "slides 13-16 sequence"
+      }
+    },
+    {
+      "from": "person:carney",
+      "to": "org:eu",
+      "label": "20th EU-Canada summit (June 2025)",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/21.webp",
+        "loc": "slide 21",
+        "quote": "Presidents Ursula von der Leyen and António Costa for the EU, with Prime Minister Mark Carney for Canada, agreed to deepen their cooperation."
+      }
+    },
+    {
+      "from": "org:eu",
+      "to": "program:eu-sdp",
+      "label": "Signed with Canada",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/21.webp",
+        "loc": "slide 21"
+      }
+    },
+    {
+      "from": "org:eu",
+      "to": "program:express-entry",
+      "label": "Joint statement: facilitate movement of highly skilled workers",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/22.webp",
+        "loc": "slide 22",
+        "quote": "Strengthen labour mobility by facilitating the movement of highly skilled workers, and explore shared interests in exchanging information about immigration preparations."
+      }
+    },
+    {
+      "from": "person:guterres",
+      "to": "org:un",
+      "label": "Secretary-General",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/28.webp",
+        "loc": "slide 28"
+      }
+    },
+    {
+      "from": "org:un",
+      "to": "org:wef",
+      "label": "Formal partnership (per slide 28 text)",
+      "kind": "stated",
+      "src": {
+        "doc": "@imm/Images/28.webp",
+        "loc": "slide 28",
+        "quote": "a direct participant in the UN's formal partnership with the World Economic Forum."
+      }
+    },
+    {
+      "from": "org:kraken",
+      "to": "org:sefine",
+      "label": "MOU: underwater target-recognition software (May 6, 2026)",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 2",
+        "url": "https://www.krakenrobotics.com/news-releases/kraken-signs-mou-sefine-sisam/"
+      }
+    },
+    {
+      "from": "org:dnd",
+      "to": "org:kraken",
+      "label": "Navy contracts (2022) up to C$57.9M",
+      "kind": "stated",
+      "amount": 57900000,
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 2",
+        "quote": "Kraken already held Canadian Navy contracts announced in 2022 worth up to C$57.9 million. That is earlier defence work, not the value of this new deal."
+      },
+      "money": "Navy contracts announced in 2022 (up to)"
+    },
+    {
+      "from": "org:sefine",
+      "to": "country:turkiye",
+      "label": "Based in",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 2"
+      }
+    },
+    {
+      "from": "person:carney",
+      "to": "person:erdogan",
+      "label": "Meeting in Türkiye (Jul 7, 2026)",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 3",
+        "url": "https://www.pm.gc.ca/en/news/readouts/2026/07/07/prime-minister-carney-meets-president-turkiye-recep-tayyip-erdogan"
+      }
+    },
+    {
+      "from": "person:carney",
+      "to": "person:erdogan",
+      "label": "Ankara meeting and joint statement (Oct 22, 2026)",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "pp. 9-10",
+        "url": "https://www.pm.gc.ca/en/news/statements/2026/10/22/statement-prime-minister-carney-and-president-recep-tayyip-erdogan",
+        "quote": "export opportunities abroad"
+      }
+    },
+    {
+      "from": "person:erdogan",
+      "to": "country:turkiye",
+      "label": "President",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 3"
+      }
+    },
+    {
+      "from": "person:carney",
+      "to": "org:pmo",
+      "label": "Prime Minister",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "pp. 3, 8-10"
+      }
+    },
+    {
+      "from": "org:dnd",
+      "to": "program:ddi",
+      "label": "Launches (Jul 23, 2026)",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 4",
+        "url": "https://www.canada.ca/en/department-national-defence/news/2026/07/defence-drone-initiative.html"
+      }
+    },
+    {
+      "from": "country:turkiye",
+      "to": "program:laws-talks",
+      "label": "Wants the ban removed (Sept 2, 2026)",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 5",
+        "url": "https://transcripts.un.org/en/asset/k12/k12hptpwu5"
+      }
+    },
+    {
+      "from": "org:goc",
+      "to": "program:laws-talks",
+      "label": "Proposes SHALL to MAY/SHOULD (Sept 2, 2026)",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 6",
+        "url": "https://transcripts.un.org/en/asset/k12/k12hptpwu5"
+      }
+    },
+    {
+      "from": "org:goc",
+      "to": "claim:canada-weaken",
+      "label": "Claim",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "pp. 1, 6"
+      }
+    },
+    {
+      "from": "org:un",
+      "to": "program:laws-talks",
+      "label": "Chair removes paragraph 34 (Sept 3, 2026)",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 7",
+        "url": "https://transcripts.un.org/en/asset/k1u/k1uqk11u2f"
+      }
+    },
+    {
+      "from": "org:unoda",
+      "to": "program:laws-talks",
+      "label": "Negotiating documents",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Autonomous_Weapons_BEYOND THE TIMELINE..pdf",
+        "loc": "p. 1",
+        "url": "https://meetings.unoda.org/meeting/79329/documents"
+      }
+    },
+    {
+      "from": "org:icrc",
+      "to": "program:laws-talks",
+      "label": "Calls for binding limits",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Autonomous_Weapons_BEYOND THE TIMELINE..pdf",
+        "loc": "p. 1",
+        "url": "https://www.icrc.org/en/document/icrc-position-autonomous-weapon-systems"
+      }
+    },
+    {
+      "from": "person:carney",
+      "to": "country:ukraine",
+      "label": "Up to C$50M initial drone contracts; joint production (Sept 10, 2026)",
+      "kind": "stated",
+      "amount": 50000000,
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 8",
+        "url": "https://www.pm.gc.ca/en/news/news-releases/2026/09/10/canada-and-ukraine-scale-drone-production-build-canadas-defence"
+      },
+      "money": "Initial drone and unmanned-vehicle contracts (up to)"
+    },
+    {
+      "from": "org:ciel",
+      "to": "org:aselsan",
+      "label": "Agreement: production in Canada, tech sharing, exports (Oct 23, 2026)",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 11",
+        "url": "https://www.cielcapital.ca/aselsanmou",
+        "quote": "No contract dollar value has been announced."
+      }
+    },
+    {
+      "from": "org:aselsan",
+      "to": "country:turkiye",
+      "label": "Based in",
+      "kind": "stated",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 11"
+      }
+    },
+    {
+      "from": "program:budget2026",
+      "to": "program:ddi",
+      "label": "Proposes C$2.3B over five years from 2027-28",
+      "kind": "stated",
+      "amount": 2300000000,
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 12",
+        "url": "https://budget.canada.ca/2026/report-rapport/chap5-en.html",
+        "quote": "It is proposed program funding, not money awarded to the Turkish partnerships."
+      },
+      "money": "Proposed in Budget 2026, over five years from 2027-28"
+    },
+    {
+      "from": "org:tbs",
+      "to": "dataset:estimates",
+      "label": "Original publisher of the Estimates CSVs",
+      "kind": "stated",
+      "src": {
+        "doc": "@del/Files/Canada-Deleted-Spending Estimates-Records list.pdf",
+        "loc": "pp. 1-4"
+      }
+    },
+    {
+      "from": "org:wayback",
+      "to": "dataset:estimates",
+      "label": "Recovered copies (e.g. organization-summary-a-2021-22.csv)",
+      "kind": "stated",
+      "src": {
+        "doc": "@del/Files/Canada-Deleted-Spending Estimates-Records list.pdf",
+        "loc": "p. 4",
+        "url": "https://web.archive.org/web/20250723063531id_/https://www.canada.ca/content/dam/tbs-sct/documents/planned-government-spending/supplementary-estimates/organization-summary-a-2021-22.csv",
+        "quote": "Captured six times by the Internet Archive between 9 July 2021 and 23 July 2025. Returns 404 at its original address today."
+      }
+    },
+    {
+      "from": "dataset:estimates",
+      "to": "claim:deleted",
+      "label": "Recovered files",
+      "kind": "stated",
+      "src": {
+        "doc": "@del/Files/Canada-Deleted-Spending Estimates-Records list.pdf",
+        "loc": "p. 3",
+        "quote": "MASTER INDEX lists 2022-23 forward only. Everything older was removed."
+      }
+    },
+    {
+      "from": "dataset:estimates",
+      "to": "org:ircc",
+      "label": "Contains IRCC appropriation lines for every round",
+      "kind": "computed",
+      "src": {
+        "doc": "@del/Files/Federal Estimates Deleted.7z",
+        "loc": "organization-summary tables"
+      }
+    },
+    {
+      "from": "org:statcan",
+      "to": "program:cpss4",
+      "label": "Ran the survey (July 20-26, 2020)",
+      "kind": "stated",
+      "src": {
+        "doc": "@tim/Files/Misinformation During the COVID-19 Pandemic- by Karine Garneau and Clémence Zossou.pdf",
+        "loc": "p. 3"
+      }
+    },
+    {
+      "from": "person:garneau-zossou",
+      "to": "program:cpss4",
+      "label": "Article uses CPSS4 data (Feb 2, 2021)",
+      "kind": "stated",
+      "src": {
+        "doc": "@tim/Files/Misinformation During the COVID-19 Pandemic- by Karine Garneau and Clémence Zossou.pdf",
+        "loc": "p. 3",
+        "url": "https://www150.statcan.gc.ca/n1/pub/45-28-0001/2021001/article/00003-eng.htm"
+      }
+    },
+    {
+      "from": "person:garneau-zossou",
+      "to": "org:statcan",
+      "label": "Authors (StatCan)",
+      "kind": "stated",
+      "src": {
+        "doc": "@tim/Files/Misinformation During the COVID-19 Pandemic- by Karine Garneau and Clémence Zossou.pdf",
+        "loc": "p. 1"
+      }
+    },
+    {
+      "from": "program:cpss4",
+      "to": "dataset:pumf",
+      "label": "Microdata",
+      "kind": "stated",
+      "src": {
+        "doc": "@tim/Files/Government Questionaires and Findings.zip",
+        "loc": "Questionnair spreadsheet Results/"
+      }
+    },
+    {
+      "from": "dataset:pumf",
+      "to": "dataset:statcan-tally",
+      "label": "Archive's unweighted count of FC_25",
+      "kind": "stated",
+      "src": {
+        "doc": "@tim/Files/misinformation Statscan.xlsx",
+        "loc": "Sheet1"
+      }
+    },
+    {
+      "from": "dataset:statcan-tally",
+      "to": "claim:stats-dont-add-up",
+      "label": "Basis of the claim",
+      "kind": "stated",
+      "src": {
+        "doc": "@tim/Images/Comprehensive Visual.png",
+        "loc": "annotated collage"
+      }
+    },
+    {
+      "from": "dataset:pumf",
+      "to": "claim:stats-dont-add-up",
+      "label": "Weighted recount matches StatCan's published %",
+      "kind": "computed",
+      "src": {
+        "doc": "@tim/Files/Government Questionaires and Findings.zip",
+        "loc": "FC_25 x PERS_WGT"
+      }
+    },
+    {
+      "from": "org:cihr",
+      "to": "claim:caulfield-grants",
+      "label": "Grant card: \"Coronavirus Outbreak: Mapping and Countering Misinformation\" $381,708",
+      "kind": "stated",
+      "amount": 381708,
+      "money": "CIHR grant shown on the case thumbnail: Coronavirus Outbreak: Mapping and Countering Misinformation",
+      "src": {
+        "doc": "@tim/Tim.jpg",
+        "loc": "thumbnail graphic",
+        "quote": "CIHR | IRSC · Coronavirus Outbreak: Mapping and Countering Misinformation · $381,708"
+      }
+    },
+    {
+      "from": "org:cihr",
+      "to": "claim:caulfield-grants",
+      "label": "Grant card: \"Healthy Information Ecosystems\" $1,500,000",
+      "kind": "stated",
+      "amount": 1500000,
+      "money": "CIHR grant shown on the case thumbnail: Healthy Information Ecosystems",
+      "src": {
+        "doc": "@tim/Tim.jpg",
+        "loc": "thumbnail graphic",
+        "quote": "CIHR | IRSC · Healthy Information Ecosystems · $1,500,000"
+      }
+    },
+    {
+      "from": "org:cihr",
+      "to": "claim:caulfield-grants",
+      "label": "Grant card: \"Misinformation and Public Health\" $1,500,000",
+      "kind": "stated",
+      "amount": 1500000,
+      "money": "CIHR grant shown on the case thumbnail: Misinformation and Public Health",
+      "src": {
+        "doc": "@tim/Tim.jpg",
+        "loc": "thumbnail graphic",
+        "quote": "CIHR | IRSC · Misinformation and Public Health · $1,500,000"
+      }
+    },
+    {
+      "from": "claim:caulfield-grants",
+      "to": "org:cihr",
+      "label": "$381,708 + $1,500,000 + $1,500,000 = $3,381,708 (the \"$3.38M\")",
+      "kind": "computed",
+      "src": {
+        "doc": "@tim/Tim.jpg",
+        "loc": "sum of the three cards"
+      }
+    },
+    {
+      "from": "person:caulfield",
+      "to": "claim:caulfield-grants",
+      "label": "Subject of claim",
+      "kind": "stated",
+      "src": {
+        "doc": "@tim/index.html",
+        "loc": "case subtitle"
+      }
+    },
+    {
+      "from": "person:caulfield",
+      "to": "claim:stats-dont-add-up",
+      "label": "Subject of claim",
+      "kind": "stated",
+      "src": {
+        "doc": "@tim/index.html",
+        "loc": "case subtitle"
+      }
+    },
+    {
+      "from": "org:brookfield",
+      "to": "dataset:brookfield-ownership",
+      "label": "Group root",
+      "kind": "data",
+      "src": {
+        "doc": "@brk/Files/BROOKFIELD_CORPORATION_Corp.pdf.pdf",
+        "loc": "p. 1"
+      }
+    },
+    {
+      "from": "org:vesper",
+      "to": "dataset:brookfield-ownership",
+      "label": "Produced DSX table",
+      "kind": "stated",
+      "src": {
+        "doc": "@tbl/BROOKFIELD_CORPORATION.pdf",
+        "loc": "watermark"
+      }
+    },
+    {
+      "from": "org:vesper",
+      "to": "dataset:estimates",
+      "label": "Recovered and compiled",
+      "kind": "stated",
+      "src": {
+        "doc": "@del/Files/Canada-Deleted-Spending Estimates-Records list.pdf",
+        "loc": "p. 4",
+        "quote": "Vesper Digital · Compiled 1 November 2026"
+      }
+    }
+  ],
+  "events": [
+    {
+      "date": "2020-07-20",
+      "title": "CPSS Series 4 survey fielded (to July 26)",
+      "case": "case:misinformation",
+      "src": {
+        "doc": "@tim/Files/Misinformation During the COVID-19 Pandemic- by Karine Garneau and Clémence Zossou.pdf",
+        "loc": "p. 3"
+      }
+    },
+    {
+      "date": "2021-02-02",
+      "title": "StatCan publishes 'Misinformation During the COVID-19 Pandemic'",
+      "text": "96% of Canadians who used the Internet for COVID-19 information saw suspected misinformation: 25% multiple times a day, 14% once a day, 29% at least weekly, 28% rarely, 4% never.",
+      "case": "case:misinformation",
+      "src": {
+        "doc": "@tim/Files/Misinformation During the COVID-19 Pandemic- by Karine Garneau and Clémence Zossou.pdf",
+        "loc": "pp. 1-3",
+        "url": "https://www150.statcan.gc.ca/n1/pub/45-28-0001/2021001/article/00003-eng.htm"
+      }
+    },
+    {
+      "date": "2021-03-29",
+      "title": "IRCC grants start: IOM $203.09M and UNHCR $24.49M",
+      "text": "Agreements G228665001 (IOM) and G228665002 (UNHCR), both ending March 31, 2025.",
+      "case": "case:immigration",
+      "src": {
+        "doc": "@imm/Images/4.webp",
+        "loc": "slides 4 and 26"
+      }
+    },
+    {
+      "date": "2021-07-09",
+      "title": "First Wayback capture of organization-summary-a-2021-22.csv",
+      "text": "Captured six times between 9 July 2021 and 23 July 2025; now 404 on canada.ca.",
+      "case": "case:deleted-records",
+      "src": {
+        "doc": "@del/Files/Canada-Deleted-Spending Estimates-Records list.pdf",
+        "loc": "p. 4"
+      }
+    },
+    {
+      "date": "2025-01-31",
+      "title": "IRCC grant to IOM: $115,798,590 (to March 31, 2028)",
+      "case": "case:immigration",
+      "src": {
+        "doc": "@imm/Images/5.webp",
+        "loc": "slide 5"
+      }
+    },
+    {
+      "date": "2025-06-23",
+      "title": "20th EU-Canada summit: Security and Defence Partnership",
+      "text": "Joint statement (June 22, 2025) includes facilitating the movement of highly skilled workers.",
+      "case": "case:immigration",
+      "src": {
+        "doc": "@imm/Images/21.webp",
+        "loc": "slides 21-22"
+      }
+    },
+    {
+      "date": "2025-07-23",
+      "title": "Last Wayback capture of organization-summary-a-2021-22.csv",
+      "case": "case:deleted-records",
+      "src": {
+        "doc": "@del/Files/Canada-Deleted-Spending Estimates-Records list.pdf",
+        "loc": "p. 4"
+      }
+    },
+    {
+      "date": "2026-05-06",
+      "title": "Kraken Robotics and SEFINE team up",
+      "text": "Kraken Robotics of Canada and Türkiye's SEFINE agree to develop software that automatically recognizes underwater targets.",
+      "case": "case:drones",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 2",
+        "url": "https://www.krakenrobotics.com/news-releases/kraken-signs-mou-sefine-sisam/"
+      }
+    },
+    {
+      "date": "2026-06-10",
+      "title": "IRCC briefing note: Canada to chair Resettlement consultations 2026-2027",
+      "text": "Reference Number 2026-01388924. Addressee: Deputy head. Action required: For Signature.",
+      "case": "case:immigration",
+      "src": {
+        "doc": "@imm/Images/20.webp",
+        "loc": "slides 1 and 20"
+      }
+    },
+    {
+      "date": "2026-07-07",
+      "title": "Carney meets Türkiye's president",
+      "text": "Carney meets President Erdoğan in Türkiye. They discuss making more military equipment together, new technology, Ukraine, and closer business ties.",
+      "case": "case:drones",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 3",
+        "url": "https://www.pm.gc.ca/en/news/readouts/2026/07/07/prime-minister-carney-meets-president-turkiye-recep-tayyip-erdogan"
+      }
+    },
+    {
+      "date": "2026-07-23",
+      "title": "Canada launches the Defence Drone Initiative",
+      "text": "Drones carrying explosives, systems that stop enemy drones, and technology for accurate attacks.",
+      "case": "case:drones",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 4",
+        "url": "https://www.canada.ca/en/department-national-defence/news/2026/07/defence-drone-initiative.html"
+      }
+    },
+    {
+      "date": "2026-09-02",
+      "title": "UN: Türkiye wants the weapons ban removed; Canada asks to weaken it",
+      "text": "The proposed rule says countries MUST ban these weapons. Canada wants the wording changed to SHOULD or MAY.",
+      "case": "case:drones",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "pp. 5-6",
+        "url": "https://transcripts.un.org/en/asset/k12/k12hptpwu5"
+      }
+    },
+    {
+      "date": "2026-09-03",
+      "title": "The UN chair drops the proposed ban (paragraph 34)",
+      "text": "The chair says countries cannot agree on the wording and removes the entire paragraph from the draft.",
+      "case": "case:drones",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 7",
+        "url": "https://transcripts.un.org/en/asset/k1u/k1uqk11u2f"
+      }
+    },
+    {
+      "date": "2026-09-10",
+      "title": "Canada plans to make more drones for Ukraine",
+      "text": "Up to C$50 million in initial drone and unmanned-vehicle contracts; plans to produce military drones with Ukraine.",
+      "case": "case:drones",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 8",
+        "url": "https://www.pm.gc.ca/en/news/news-releases/2026/09/10/canada-and-ukraine-scale-drone-production-build-canadas-defence"
+      }
+    },
+    {
+      "date": "2026-09-23",
+      "title": "StatCan: 2,779,774 non-permanent residents on July 1, 2026",
+      "text": "Down from 2,934,388 (2025) and 2,900,083 (2024); 1,546,638 in 2022.",
+      "case": "case:immigration",
+      "src": {
+        "doc": "@imm/Images/25.webp",
+        "loc": "slides 23 and 25"
+      }
+    },
+    {
+      "date": "2026-10-06",
+      "title": "PMO announces Carney's visit to Türkiye",
+      "text": "Defence and security named as priorities, alongside trade, investment and energy.",
+      "case": "case:drones",
+      "src": {
+        "doc": "@drn/Files/Autonomous_Weapons_BEYOND THE TIMELINE..pdf",
+        "loc": "p. 3",
+        "url": "https://www.pm.gc.ca/en/news/news-releases/2026/10/06/prime-minister-carney-visit-turkiye-advance-partnership-across-trade"
+      }
+    },
+    {
+      "date": "2026-10-16",
+      "title": "IRCC: Express Entry refocused; LMIA requirement dropped from Nov 3",
+      "text": "Announced in Kitchener, Ontario by Minister Lena Metlege Diab.",
+      "case": "case:immigration",
+      "src": {
+        "doc": "@imm/Images/15.webp",
+        "loc": "slides 15-16"
+      }
+    },
+    {
+      "date": "2026-10-22",
+      "title": "Carney returns to Türkiye to expand defence ties",
+      "text": "Deeper cooperation in defence manufacturing, aerospace and advanced technology. Carney: \"export opportunities abroad\".",
+      "case": "case:drones",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "pp. 9-10",
+        "url": "https://www.pm.gc.ca/en/news/speeches/2026/10/22/prime-minister-carney-delivers-remarks-alongside-president-turkiye-recep"
+      }
+    },
+    {
+      "date": "2026-10-23",
+      "title": "CIEL Defence and ASELSAN sign agreement",
+      "text": "Explore production in Canada, technology sharing and future exports. No contract dollar value announced (announced October 29).",
+      "case": "case:drones",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 11",
+        "url": "https://www.cielcapital.ca/aselsanmou"
+      }
+    },
+    {
+      "date": "2026-10-29",
+      "title": "Government links checked for the recovery index (to Oct 31)",
+      "case": "case:deleted-records",
+      "src": {
+        "doc": "@del/Files/Canada-Deleted-Spending Estimates-Records list.pdf",
+        "loc": "p. 4"
+      }
+    },
+    {
+      "date": "2026-11-01",
+      "title": "Vesper Digital compiles the deleted-records recovery index",
+      "case": "case:deleted-records",
+      "src": {
+        "doc": "@del/Files/Canada-Deleted-Spending Estimates-Records list.pdf",
+        "loc": "p. 1"
+      }
+    },
+    {
+      "date": "2026-11-03",
+      "title": "Express Entry changes take effect (LMIA no longer required)",
+      "case": "case:immigration",
+      "src": {
+        "doc": "@imm/Images/9.webp",
+        "loc": "slide 9"
+      }
+    },
+    {
+      "date": "2026-11-05",
+      "title": "Budget 2026: C$2.3B for drones and counter-drone systems",
+      "text": "Proposed over five years starting 2027-28. Proposed program funding, not money awarded to the Turkish partnerships.",
+      "case": "case:drones",
+      "src": {
+        "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
+        "loc": "p. 12",
+        "url": "https://budget.canada.ca/2026/report-rapport/chap5-en.html"
+      }
+    }
+  ],
+  "claims_checks_note": "Automatic checks are computed in build_data.py (see 'checks' in data/summary.json)."
+}

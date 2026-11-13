@@ -1,0 +1,53 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 9 * * *"   # daily: pick up new commits in the Evidence-Archive
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out the Evidence-Archive
+        uses: actions/checkout@v4
+        with:
+          repository: Vesper-Digital/Evidence-Archive
+          path: archive
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Build site data from the archive
+        run: uv run pipeline/build_data.py --src archive
+
+      - name: Contract tests
+        run: uv run --no-project python -m unittest discover tests -v
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
