@@ -31,3 +31,12 @@ export function month(s) {
 
 export const bytes = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : n >= 1e3 ? `${(n / 1e3).toFixed(0)} KB` : `${n} B`);
 export const fileName = (p) => p.split('/').pop();
+
+const WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+// countWord(4, 'table') -> 'Four tables'. Numbers above ten stay as digits.
+export function countWord(n, noun = '') {
+  const w = WORDS[n] || String(n);
+  return noun ? `${w} ${noun}${n === 1 ? '' : 's'}` : w;
+}
+// listWords(['a', 'b', 'c']) -> 'a, b and c'
+export const listWords = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);

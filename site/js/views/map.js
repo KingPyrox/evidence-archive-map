@@ -41,7 +41,7 @@ export async function render(root, params) {
     <p class="lead">Each dot is a person, organization, program, dataset or claim. Each line is a connection backed by a file
       in the archive. Click a dot to see its connections and sources. Drag to move dots, scroll or pinch to zoom.</p>
     <div class="controls">
-      <label>Case <select id="m-case">${options([['', 'All cases'], ...s.cases.map((c) => [c.id, c.title]), [TABLES, 'The four lobbying tables']], state.case)}</select></label>
+      <label>Case <select id="m-case">${options([['', 'All cases'], ...s.cases.map((c) => [c.id, c.title]), [TABLES, 'The lobbying tables']], state.case)}</select></label>
       <label>Find <input id="m-find" type="search" list="m-names" placeholder="A person, body, company…" autocomplete="off"></label>
       <datalist id="m-names">${g.nodes.map((n) => `<option value="${esc(n.label)}">`).join('')}</datalist>
       <button class="btn small secondary" id="m-list" aria-pressed="false">Show as a list</button>

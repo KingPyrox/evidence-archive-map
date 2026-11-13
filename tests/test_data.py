@@ -63,6 +63,13 @@ class DataContract(unittest.TestCase):
             self.assertIsInstance(r["institutions"], list)
             self.assertIsInstance(r["holders"], list)
         self.assertEqual(sum(d["records"] for d in lob["datasets"]), len(lob["records"]))
+        for d in lob["datasets"]:
+            self.assertTrue(d.get("name"), d["id"])
+
+    def test_new_in_archive_points_at_real_items(self):
+        new = self.s["new_in_archive"]
+        self.assertTrue(set(new["cases"]) <= {c["id"] for c in self.s["cases"]})
+        self.assertTrue(set(new["lobbying_tables"]) <= {d["id"] for d in load("lobbying")["datasets"]})
 
     def test_survey_matches_statcan(self):
         sv = load("survey")

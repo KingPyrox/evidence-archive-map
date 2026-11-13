@@ -5,7 +5,7 @@ export function caseIndex(cases) {
   const ofVideo = {};
   for (const c of cases) {
     for (const d of c.datasets || []) (ofDataset[d] ||= []).push(c.id);
-    for (const v of [c.video, ...(c.related_videos || [])]) (ofVideo[v] ||= []).push(c.id);
+    for (const v of [c.video, ...(c.related_videos || [])].filter(Boolean)) (ofVideo[v] ||= []).push(c.id);
   }
   return { byId, ofDataset, ofVideo };
 }

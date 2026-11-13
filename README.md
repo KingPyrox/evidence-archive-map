@@ -10,11 +10,11 @@ files that is labelled as one. Every connection links back to its file on GitHub
 
 | Page | What it shows |
 |---|---|
-| Overview | The five cases, headline counts, results of the automatic checks |
+| Overview | Every case in the archive, what is new and not mapped yet, headline counts, results of the automatic checks |
 | Connection map | Network of people, bodies, companies, programs, datasets and claims. Click a dot to see its sourced connections. Filter by case or layer. A list view is also available. |
 | Money flows | Every dollar figure in the evidence, IRCC grants to IOM and UNHCR, and Sankey charts of money moved between federal departments (Estimates, 2019-20 to 2021-22) |
 | Federal spending | Any department across all 22 recovered Estimates rounds, the top 20 departments per round, and which rounds had no Open Government catalogue record |
-| Lobbying | 105 Lobbying Registry records (Drones, Telesat, Roshel, Stelco tables), filterable by client, institution and text |
+| Lobbying | Every Lobbying Registry table in the archive (105 records in 4 tables at launch), filterable by client, institution and text |
 | Corporate ownership | Brookfield Corporation's 1,100-link ownership tree, searchable, with the path to any company |
 | Timeline | Every dated item: events in the evidence, lobbying records, videos and case publication dates |
 | Survey check | Recomputes StatCan's COVID-19 misinformation figures from the survey microdata in the archive |
@@ -40,6 +40,16 @@ site/data/*.json  ──►  static site (site/)  ──►  GitHub Pages
   published percentages and data dictionary, and that every cited file exists. A failed check is a finding about the archive.
   It does not fail the build, and the site shows it. Only a broken graph (a missing node or file) fails the build.
 
+### What happens when the archive changes
+
+| Change in the Evidence-Archive | What the site does on the next build |
+|---|---|
+| A file the site already reads is edited | Rebuilt from the new file. |
+| A new top-level case folder (same rule as the archive's `tools/build_cases.py`) | Gets a case card, its file list and a timeline entry, marked "New: not mapped yet". Connections are added by hand in `curated.json`. |
+| A new table that `assets/tables.json` tags `LOBBYING REGISTRY` | Charted on the Lobbying page, the map and the timeline, with a generated name and colour. |
+| A file the pipeline reads is moved to another folder | Found by its file name. A check on the site names the new path. |
+| A file is renamed, removed or changes layout | Only that section keeps its last good copy (from the live site). A failed check on the site says which section and why. Map links that cite the file are hidden until `curated.json` is updated. |
+
 ## Run it locally
 
 Requires [uv](https://docs.astral.sh/uv/) and Python 3.11+.
@@ -56,8 +66,12 @@ No build step and no npm. The site is plain HTML, CSS and ES modules. The only l
 ## Deploy
 
 `.github/workflows/deploy.yml` builds the data from the latest Evidence-Archive, runs the tests and publishes `site/` to
-GitHub Pages. It runs on every push to `main`, daily, and on demand. To turn it on, go to **Settings → Pages → Source**
-and choose **GitHub Actions**.
+GitHub Pages. It runs on every push to `main` and on demand. Every 30 minutes it checks the archive's latest commit against
+`source_commit` in the live `data/summary.json` and rebuilds only when they differ. A commit that fails to build is not
+retried on the schedule for 7 days (run the workflow by hand to retry sooner). Failed archive checks show as warnings on
+the run. A daily job pushes an empty commit if `main` has been quiet for 45 days, because GitHub turns off schedules in
+public repos after 60 days without activity. To turn Pages on, go to **Settings → Pages → Source** and choose
+**GitHub Actions**.
 
 The site is static, so any static host works (Vercel, Netlify, Cloudflare Pages). Point it at `site/` with no build command.
 
@@ -84,8 +98,8 @@ tests/
 
 ## Adding to it
 
-- **A new case folder** in the archive: add it to `folders` and `cases` in `curated.json`, then add its nodes, edges and
-  events. Every edge needs a `kind` (`data`, `stated` or `computed`) and a `src` with `doc` (archive path, with `@alias/`
+- **A new case folder** in the archive shows up by itself as "not mapped yet". To map it, add it to `folders` and `cases`
+  in `curated.json`, then add its nodes, edges and events. Every edge needs a `kind` (`data`, `stated` or `computed`) and a `src` with `doc` (archive path, with `@alias/`
   folder shortcuts), `loc` (page or slide) and `quote` where possible.
 - **A new spreadsheet type:** add a reader to `build_data.py`, write its output to a new `site/data/<name>.json`, and add a
   view in `site/js/views/` plus a route in `app.js`.

@@ -41,3 +41,6 @@ export const DATASET_COLORS = {
   'dataset:lobby-roshel': '#047857',
   'dataset:lobby-stelco': '#7c3aed',
 };
+
+// Colours for lobbying tables the archive adds later, in order.
+export const DATASET_PALETTE = ['#0e7490', '#be123c', '#65a30d', '#a16207', '#4338ca', '#9d174d'];

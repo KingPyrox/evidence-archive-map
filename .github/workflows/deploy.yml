@@ -5,19 +5,62 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: "17 9 * * *"   # daily: pick up new commits in the Evidence-Archive
+    - cron: "*/30 * * * *"   # check the Evidence-Archive for new commits every 30 minutes
+    - cron: "17 9 * * *"     # daily: also keeps this schedule from being auto-disabled
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+env:
+  ARCHIVE: Vesper-Digital/Evidence-Archive
+  LIVE_DATA: https://kingpyrox.github.io/evidence-archive-map/data
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+      sha: ${{ steps.cmp.outputs.sha }}
+    steps:
+      - name: Compare the archive's latest commit with the live site
+        id: cmp
+        run: |
+          sha=$(git ls-remote "https://github.com/$ARCHIVE" refs/heads/main | cut -f1)
+          live=$(curl -fsSL "$LIVE_DATA/summary.json?run=$GITHUB_RUN_ID" | jq -r '.source_commit // empty' || true)
+          echo "archive=$sha live=$live"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "live=$live" >> "$GITHUB_OUTPUT"
+
+      - name: Was this archive commit already tried?
+        id: seen
+        uses: actions/cache/restore@v4
+        with:
+          path: .seen
+          key: archive-${{ steps.cmp.outputs.sha }}
+          lookup-only: true
+
+      - name: Decide
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          SHA: ${{ steps.cmp.outputs.sha }}
+          LIVE: ${{ steps.cmp.outputs.live }}
+          SEEN: ${{ steps.seen.outputs.cache-hit }}
+        run: |
+          if [ "$EVENT" != "schedule" ]; then build=true
+          elif [ -z "$SHA" ] || [ "$SHA" = "$LIVE" ] || [ "$SEEN" = "true" ]; then build=false
+          else build=true
+          fi
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "build=$build"
+
   build:
+    needs: check
+    if: needs.check.outputs.build == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,13 +68,24 @@ jobs:
       - name: Check out the Evidence-Archive
         uses: actions/checkout@v4
         with:
-          repository: Vesper-Digital/Evidence-Archive
+          repository: ${{ env.ARCHIVE }}
+          ref: ${{ needs.check.outputs.sha || 'main' }}
           path: archive
+
+      - name: Start from the live data, so a section the archive breaks keeps its last good copy
+        run: |
+          mkdir -p site/data
+          for f in lobbying ownership estimates survey; do
+            curl -fsSL "$LIVE_DATA/$f.json?run=$GITHUB_RUN_ID" -o "site/data/$f.json" || rm -f "site/data/$f.json"
+          done
 
       - uses: astral-sh/setup-uv@v6
 
       - name: Build site data from the archive
-        run: uv run pipeline/build_data.py --src archive
+        run: |
+          set -o pipefail
+          uv run pipeline/build_data.py --src archive | tee build.log
+          grep '^FAIL ' build.log | sed 's/^FAIL /::warning title=Archive check failed::/' || true
 
       - name: Contract tests
         run: uv run --no-project python -m unittest discover tests -v
@@ -42,12 +96,46 @@ jobs:
         with:
           path: site
 
+      - name: Remember this archive commit, so a broken one is not rebuilt every 30 minutes
+        if: always()
+        run: mkdir -p .seen && echo "${{ needs.check.outputs.sha }}" > .seen/sha
+
+      - if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .seen
+          key: archive-${{ needs.check.outputs.sha }}
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # GitHub disables scheduled workflows in a public repo after 60 days with no repository activity.
+  # Builds do not commit, so push an empty commit when main has been quiet for 45 days.
+  # A push made with GITHUB_TOKEN does not start a new workflow run, so this cannot loop.
+  keepalive:
+    if: github.event.schedule == '17 9 * * *'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          age=$(( $(date +%s) - $(git log -1 --format=%ct) ))
+          if [ "$age" -gt $(( 45 * 86400 )) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "chore: keep the scheduled archive sync enabled"
+            git push
+          else
+            echo "Last commit is $(( age / 86400 )) days old. Nothing to do."
+          fi

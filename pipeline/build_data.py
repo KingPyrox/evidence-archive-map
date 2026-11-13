@@ -11,6 +11,7 @@ labelled computation over archive files. Hand transcriptions live in curated.jso
 import argparse
 import csv
 import hashlib
+import html
 import io
 import json
 import re
@@ -21,7 +22,7 @@ import zipfile
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 import openpyxl
 import py7zr
@@ -42,6 +43,35 @@ def check(name, expected, actual, note=""):
 
 def gh(path):
     return BLOB + quote(path)
+
+
+def slug(s):
+    return re.sub(r"[^a-z0-9]+", "-", str(s).lower()).strip("-")
+
+
+def locate(src, rel):
+    """rel, or the one archive file with the same name somewhere else (the archive's own tools move files)."""
+    if (src / rel).is_file():
+        return rel
+    hits = [p for p in src.rglob(Path(rel).name) if p.is_file() and ".git" not in p.parts]
+    if len(hits) != 1:
+        raise FileNotFoundError(f"{rel} is not in the archive")
+    new = hits[0].relative_to(src).as_posix()
+    check(f"File moved in the archive: {Path(rel).name}", rel, new, "found by file name; update the path in pipeline/build_data.py")
+    return new
+
+
+def section(name, out, build):
+    """Build one data file. If the archive changed under it, keep the last good copy and report why."""
+    try:
+        return build()
+    except Exception as e:  # any failure here is an archive change; the rest of the site still updates
+        prev = out / f"{name}.json"
+        check(f"Build: {name} data rebuilt from the archive", True, False,
+              f"{type(e).__name__}: {e}. The site keeps the last published copy of this section.")
+        if not prev.is_file():
+            raise
+        return json.loads(prev.read_text(encoding="utf-8"))
 
 
 def num(s):
@@ -68,6 +98,48 @@ def read_csv(path):
 
 # ---------------------------------------------------------------- inventory
 CASE_BY_FOLDER = {}
+# The archive's own rule (tools/build_cases.py): every top-level folder except these is a case.
+NOT_CASES = {"assets", "tools", "node_modules", "docs", "Tables", "Gallery"}
+YOUTUBE = re.compile(r"(?:youtu\.be/|youtube\.com/(?:watch\?v=|live/|shorts/|embed/))([A-Za-z0-9_-]{6,})")
+
+
+def case_date(src, folder):
+    """date.txt, else a date at the start of the folder name, else the date the archive's index.html shows,
+    else the last commit that touched the folder."""
+    d = (src / folder / "date.txt").read_text(encoding="utf-8").split()[:1] if (src / folder / "date.txt").is_file() else []
+    m = re.match(r"\d{4}-\d{2}-\d{2}", d[0] if d else folder)
+    if m:
+        return m.group(0)
+    index = src / "index.html"
+    if index.is_file():
+        page = index.read_text(encoding="utf-8")
+        m = re.search(rf'<h3><a href="{re.escape(quote(folder))}/">.*?<div class="date">([^<]+)<', page, re.S)
+        if m:
+            try:
+                return datetime.strptime(m.group(1).strip(), "%B %d, %Y").date().isoformat()
+            except ValueError:
+                pass
+    r = subprocess.run(["git", "-C", str(src), "log", "-1", "--format=%cs", "--", folder], capture_output=True, text=True)
+    return r.stdout.strip() or None
+
+
+def new_cases(src, known):
+    """Case folders in the archive that curated.json does not map yet. They get a card, their files and a
+    timeline entry. Who-connects-to-whom links for them are still added by hand in curated.json."""
+    out = []
+    for p in sorted(src.iterdir()):
+        if not p.is_dir() or p.name.startswith((".", "_")) or p.name in NOT_CASES or p.name in known:
+            continue
+        read = lambda n: (p / n).read_text(encoding="utf-8").strip() if (p / n).is_file() else ""
+        about = read("about.txt").splitlines()
+        video = next((l.strip() for l in about if re.fullmatch(r"\s*https?://\S+\s*", l)), "")
+        blurb = " ".join(l.strip() for l in about if l.strip() and l.strip() != video)
+        title = read("title.txt") or re.sub(r"\s+", " ", p.name.replace("_", " ").replace("-", " ")).strip()
+        m = YOUTUBE.search(video)
+        out.append({"id": f"case:{slug(p.name)}", "folder": p.name, "title": title, "headline": title,
+                    "date": case_date(src, p.name), "video": m.group(1) if m else None, "video_link": video or None,
+                    "summary": blurb or "Not described in the archive yet.", "datasets": [], "auto": True})
+    return out
 
 
 def inventory(src, cases):
@@ -81,12 +153,15 @@ def inventory(src, cases):
         top = rel.split("/")[0]
         item = {"path": rel, "size": p.stat().st_size, "ext": p.suffix.lower().lstrip("."),
                 "case": CASE_BY_FOLDER.get(top), "url": gh(rel), "raw": RAW + quote(rel)}
-        if p.suffix.lower() == ".zip" and "assets/zips" not in rel:
-            with zipfile.ZipFile(p) as z:
-                item["contents"] = [{"name": i.filename, "size": i.file_size} for i in z.infolist() if not i.is_dir()]
-        if p.suffix.lower() == ".7z":
-            with py7zr.SevenZipFile(p) as z:
-                item["contents"] = [{"name": i.filename, "size": i.uncompressed} for i in z.list() if not i.is_directory]
+        try:
+            if p.suffix.lower() == ".zip" and "assets/zips" not in rel:
+                with zipfile.ZipFile(p) as z:
+                    item["contents"] = [{"name": i.filename, "size": i.file_size} for i in z.infolist() if not i.is_dir()]
+            if p.suffix.lower() == ".7z":
+                with py7zr.SevenZipFile(p) as z:
+                    item["contents"] = [{"name": i.filename, "size": i.uncompressed} for i in z.list() if not i.is_directory]
+        except Exception as e:  # a damaged archive file is listed without its contents
+            check(f"Archive file opens: {rel}", True, False, f"{type(e).__name__}: {e}")
         files.append(item)
     return files
 
@@ -98,12 +173,15 @@ def pdf_links(src):
         if ".git" in p.parts:
             continue
         rel = p.relative_to(src).as_posix()
-        with pymupdf.open(p) as doc:
-            for i, page in enumerate(doc, 1):
-                for l in page.get_links():
-                    uri = l.get("uri") or ""
-                    if uri.startswith("http"):
-                        out.append({"doc": rel, "page": i, "url": uri})
+        try:
+            with pymupdf.open(p) as doc:
+                for i, page in enumerate(doc, 1):
+                    for l in page.get_links():
+                        uri = l.get("uri") or ""
+                        if uri.startswith("http"):
+                            out.append({"doc": rel, "page": i, "url": uri})
+        except Exception as e:  # one unreadable PDF must not stop the rest of the site updating
+            check(f"PDF opens: {rel}", True, False, f"{type(e).__name__}: {e}")
     seen, uniq = set(), []
     for o in out:
         k = (o["doc"], o["page"], o["url"])
@@ -114,12 +192,15 @@ def pdf_links(src):
 
 
 # ---------------------------------------------------------------- lobbying
+# The four tables mapped by hand keep these ids, because curated.json links cases and nodes to them.
 LOBBY_FILES = {
     "dataset:lobby-drones": "Tables/Lobbying Registry - Drones - 2026.xlsx",
     "dataset:lobby-telesat": "Tables/Lobbying Registry - Telesat - 2026.xlsx",
     "dataset:lobby-roshel": "Tables/Roshel - 2026- Lobbying Records.xlsx",
     "dataset:lobby-stelco": "Tables/Stelco - 2026 - Lobbying Records.xlsx",
 }
+LOBBY_NAMES = {"dataset:lobby-drones": "Drones", "dataset:lobby-telesat": "Telesat",
+               "dataset:lobby-roshel": "Roshel", "dataset:lobby-stelco": "Stelco"}
 HEAD_KEYS = {
     "Date": "date", "Client / Organization": "client", "Record Type": "type",
     "Government Institutions": "institutions", "Public Office Holders": "holders",
@@ -161,50 +242,89 @@ def _full_desc(wb, location):
     return " ".join(parts)
 
 
+def lobby_tables(src):
+    """id -> (file, short name, auto). The hand-mapped tables, plus every table the archive's
+    assets/tables.json tags LOBBYING REGISTRY, so a new lobbying table is charted on the next build."""
+    tables = {}
+    for ds, rel in LOBBY_FILES.items():
+        try:
+            tables[ds] = (locate(src, rel), LOBBY_NAMES[ds], False)
+        except FileNotFoundError:
+            check(f"Lobbying table still in the archive: {Path(rel).name}", True, False, "renamed or removed; the site leaves it out")
+    listed = src / "assets/tables.json"
+    meta = json.loads(listed.read_text(encoding="utf-8")).get("tables", []) if listed.is_file() else []
+    used = {t[0] for t in tables.values()}
+    for t in meta:
+        rel = f"Tables/{t.get('file', '')}"
+        if "LOBBYING" not in str(t.get("kind", "")).upper() or rel in used or not (src / rel).is_file():
+            continue
+        name = str(t.get("subject") or Path(rel).stem).strip().title()
+        ds = f"dataset:lobby-{slug(name)}"
+        while ds in tables:
+            ds += "-2"
+        tables[ds] = (rel, name, True)
+        used.add(rel)
+    return tables
+
+
+def lobby_table(src, ds_id, rel):
+    wb = openpyxl.load_workbook(src / rel)
+    ws = wb[wb.sheetnames[0]]
+    meta = {"id": ds_id, "file": rel, "url": gh(rel), "query": ws["B2"].value,
+            "banner": ws["B3"].value, "date_range": ws["B6"].value, "institutions_banner": ws["B7"].value}
+    heads = [HEAD_KEYS.get(c.value, c.value) for c in ws[10]]
+    records = []
+    for row in ws.iter_rows(min_row=11):
+        if not re.match(r"\d{4}-\d{2}-\d{2}", str(row[0].value or "")):
+            continue
+        rec = {"dataset": ds_id, "date": None, "client": None, "type": None, "institutions": [], "holders": [],
+               "description": None, "registrant": None, "firm": None, "funding": None, "reg_id": None, "comm_id": None, "url": None}
+        for h, c in zip(heads, row):
+            if h is None:
+                continue
+            v = c.value
+            link = c.hyperlink
+            if h == "institutions":
+                lst = _inst_list(wb, link.location) if link and link.location else None
+                v = lst if lst is not None else [s.strip() for s in str(v or "").split(";") if s.strip()]
+            elif h == "description":
+                full = _full_desc(wb, link.location) if link and link.location else None
+                v = full or (str(v).replace("▶ VIEW FULL", "").strip() if v else "")
+            elif h == "holders":
+                v = [s.strip() for s in str(v or "").split(";") if s.strip()]
+            elif h == "url":
+                v = link.target if link and link.target else v
+            elif h == "funding":
+                v = float(v) if v not in (None, "") else None
+            elif v is not None:
+                v = str(v).strip()
+            rec[h] = v
+        records.append(rec)
+    if not records or "client" not in heads:
+        raise ValueError("no dated rows under a 'Client / Organization' header, so this is not a Lobbying Registry export")
+    n = len(records)
+    m = re.search(r"(\d+) matching records", meta["banner"] or "")
+    meta["records"] = n
+    check(f"{rel}: record count", int(m.group(1)) if m else None, n, "banner vs parsed rows")
+    inst = sorted({i for r in records for i in r.get("institutions", [])})
+    mi = re.search(r"(\d+) DISTINCT", meta["institutions_banner"] or "")
+    meta["distinct_institutions"] = len(inst)
+    check(f"{rel}: distinct institutions", int(mi.group(1)) if mi else None, len(inst), "banner vs parsed lists")
+    return meta, records
+
+
 def lobbying(src):
     datasets, records = [], []
-    for ds_id, rel in LOBBY_FILES.items():
-        wb = openpyxl.load_workbook(src / rel)
-        ws = wb[wb.sheetnames[0]]
-        meta = {"id": ds_id, "file": rel, "url": gh(rel), "query": ws["B2"].value,
-                "banner": ws["B3"].value, "date_range": ws["B6"].value, "institutions_banner": ws["B7"].value}
-        heads = [HEAD_KEYS.get(c.value, c.value) for c in ws[10]]
-        n = 0
-        for row in ws.iter_rows(min_row=11):
-            if not re.match(r"\d{4}-\d{2}-\d{2}", str(row[0].value or "")):
-                continue
-            rec = {"dataset": ds_id, "date": None, "client": None, "type": None, "institutions": [], "holders": [],
-                   "description": None, "registrant": None, "firm": None, "funding": None, "reg_id": None, "comm_id": None, "url": None}
-            for h, c in zip(heads, row):
-                if h is None:
-                    continue
-                v = c.value
-                link = c.hyperlink
-                if h == "institutions":
-                    lst = _inst_list(wb, link.location) if link and link.location else None
-                    v = lst if lst is not None else [s.strip() for s in str(v or "").split(";") if s.strip()]
-                elif h == "description":
-                    full = _full_desc(wb, link.location) if link and link.location else None
-                    v = full or (str(v).replace("▶ VIEW FULL", "").strip() if v else "")
-                elif h == "holders":
-                    v = [s.strip() for s in str(v or "").split(";") if s.strip()]
-                elif h == "url":
-                    v = link.target if link and link.target else v
-                elif h == "funding":
-                    v = float(v) if v not in (None, "") else None
-                elif v is not None:
-                    v = str(v).strip()
-                rec[h] = v
-            records.append(rec)
-            n += 1
-        m = re.search(r"(\d+) matching records", meta["banner"] or "")
-        meta["records"] = n
-        check(f"{rel}: record count", int(m.group(1)) if m else None, n, "banner vs parsed rows")
-        inst = sorted({i for r in records if r["dataset"] == ds_id for i in r.get("institutions", [])})
-        mi = re.search(r"(\d+) DISTINCT", meta["institutions_banner"] or "")
-        meta["distinct_institutions"] = len(inst)
-        check(f"{rel}: distinct institutions", int(mi.group(1)) if mi else None, len(inst), "banner vs parsed lists")
-        datasets.append(meta)
+    for ds_id, (rel, name, auto) in lobby_tables(src).items():
+        try:
+            meta, recs = lobby_table(src, ds_id, rel)
+        except Exception as e:  # one unreadable table must not hide the others
+            check(f"Lobbying table read: {Path(rel).name}", True, False, f"{type(e).__name__}: {e}")
+            continue
+        datasets.append(dict(meta, name=name, auto=auto))
+        records.extend(recs)
+    if not datasets:
+        raise FileNotFoundError("no lobbying table could be read")
     return {"datasets": datasets, "records": records}
 
 
@@ -213,14 +333,15 @@ LINK_TYPES = {"Group root", "Published link", "Repeated link", "Not controlled",
 
 
 def brookfield(src):
-    rel = "Tables/BROOKFIELD_CORPORATION.pdf"
+    rel = locate(src, "Tables/BROOKFIELD_CORPORATION.pdf")
     twin = "Who Runs Canada_Brookfield Corp/Files/BROOKFIELD_CORPORATION_Corp.pdf.pdf"
     texts = {}
     for r in (rel, twin):
-        with pymupdf.open(src / r) as doc:
-            texts[r] = [pg.get_text() for pg in doc]
-    same = hashlib.sha256("".join(texts[rel]).encode()).hexdigest() == hashlib.sha256("".join(texts[twin]).encode()).hexdigest()
-    check("Brookfield: Tables/ PDF text identical to case PDF", True, same)
+        if (src / r).is_file():
+            with pymupdf.open(src / r) as doc:
+                texts[r] = [pg.get_text() for pg in doc]
+    same = twin in texts and hashlib.sha256("".join(texts[rel]).encode()).hexdigest() == hashlib.sha256("".join(texts[twin]).encode()).hexdigest()
+    check("Brookfield: Tables/ PDF text identical to case PDF", True, same, "" if twin in texts else f"{twin} is no longer in the archive")
     rows = []
     for pno, text in enumerate(texts[rel], 1):
         raw = [l.strip() for l in text.splitlines() if l.strip()]
@@ -251,6 +372,8 @@ def brookfield(src):
         else:
             stack[r["level"] - 1]["children"].append(node)
         stack[r["level"]] = node
+    if not rows or root is None:
+        raise ValueError(f"no ownership rows found in {rel}; the PDF layout changed")
     by_type = Counter(r["link"] for r in links)
     by_level = Counter(r["level"] for r in links)
     names = Counter(r["name"] for r in links)
@@ -315,7 +438,7 @@ def transfers(rows):
 
 
 def estimates(src):
-    arc = src / "Deleted Federal Records/Files/Federal Estimates Deleted.7z"
+    arc = src / locate(src, "Deleted Federal Records/Files/Federal Estimates Deleted.7z")
     out = {"file": arc.relative_to(src).as_posix(), "url": gh(arc.relative_to(src).as_posix()), "rounds": [], "orgs": {}, "transfers": [], "covid_files": []}
     with tempfile.TemporaryDirectory() as td:
         with py7zr.SevenZipFile(arc) as z:
@@ -353,7 +476,7 @@ def estimates(src):
 
 
 def recovery_index(src):
-    rel = "Deleted Federal Records/Files/Canada-Deleted-Spending Estimates-Records list.pdf"
+    rel = locate(src, "Deleted Federal Records/Files/Canada-Deleted-Spending Estimates-Records list.pdf")
     with pymupdf.open(src / rel) as doc:
         text = "\n".join(p.get_text() for p in doc)
     cat = {}
@@ -376,7 +499,7 @@ PUBLISHED = {"1": 25, "2": 14, "3": 29, "4": 28, "5": 4}
 
 
 def survey(src):
-    zrel = "Tim Caulfied  Government Funded Misinformation Guru Who Got It Wrong/Files/Government Questionaires and Findings.zip"
+    zrel = locate(src, "Tim Caulfied  Government Funded Misinformation Guru Who Got It Wrong/Files/Government Questionaires and Findings.zip")
     with zipfile.ZipFile(src / zrel) as z:
         z_names = z.namelist()
         name = next(n for n in z_names if n.lower().endswith(".csv"))
@@ -387,7 +510,7 @@ def survey(src):
         w[r["FC_25"]] += float(r["PERS_WGT"])
     base = sum(w[k] for k in PUBLISHED)
     weighted = {k: round(100 * w[k] / base, 1) for k in PUBLISHED}
-    xrel = "Tim Caulfied  Government Funded Misinformation Guru Who Got It Wrong/Files/misinformation Statscan.xlsx"
+    xrel = locate(src, "Tim Caulfied  Government Funded Misinformation Guru Who Got It Wrong/Files/misinformation Statscan.xlsx")
     ws = openpyxl.load_workbook(src / xrel, data_only=True)["Sheet1"]
     tally = {str(ws.cell(r, 1).value).strip(): ws.cell(r, 2).value for r in range(6, 12)}
     tally_total = sum(v for v in tally.values() if isinstance(v, (int, float)))
@@ -428,8 +551,14 @@ def expand(doc, folders):
 
 def build_graph(cur, lob, files):
     folders = cur["folders"]
+    paths = {f["path"] for f in files}
+    dsfile = {d["id"]: d["file"] for d in lob["datasets"]}
     nodes = {n["id"]: dict(n, cases=set()) for n in cur["nodes"]}
-    edges = []
+    for d in lob["datasets"]:  # a lobbying table found in the archive but not in curated.json
+        nodes.setdefault(d["id"], {"id": d["id"], "type": "dataset", "label": f"Lobbying records: {d.get('name', d['id'])}",
+                                   "summary": f"{Path(d['file']).name}: {d['records']} federal Lobbying Registry records.", "auto": True})
+        nodes[d["id"]].setdefault("cases", set())
+    edges, gone = [], []
     for c in cur["cases"]:
         nodes[c["id"]] = {"id": c["id"], "type": "case", "label": c["title"], "summary": c["summary"], "date": c["date"], "cases": {c["id"]}}
     folder_case = {expand(c["folder"] + "/x", folders).split("/")[0]: c["id"] for c in cur["cases"]}
@@ -439,15 +568,21 @@ def build_graph(cur, lob, files):
 
     for e in cur["edges"]:
         e = dict(e, src=dict(e["src"], doc=expand(e["src"]["doc"], folders)))
+        if e["src"]["doc"] not in paths:  # the evidence file was renamed or removed in the archive
+            gone.append(e["src"]["doc"])
+            continue
         e["src"]["github"] = gh(e["src"]["doc"])
         cs = case_of(e["src"]["doc"])
         if cs:
             nodes[e["from"]]["cases"].add(cs)
             nodes[e["to"]]["cases"].add(cs)
         edges.append(e)
+    check("Evidence files cited in curated.json are still in the archive", [], sorted(set(gone)),
+          f"{len(gone)} link(s) hidden until curated.json points at the new file names" if gone else "")
     for c in cur["cases"]:
         for d in c.get("datasets", []):
-            nodes[d]["cases"].add(c["id"])
+            if d in nodes:
+                nodes[d]["cases"].add(c["id"])
     # lobbying layer: clients and institutions straight from the registry tables
     alias = {}
     for n in cur["nodes"]:
@@ -472,17 +607,17 @@ def build_graph(cur, lob, files):
         ds = sorted({r["dataset"] for r in recs})
         if iid == "country:ukraine":
             edges.append({"from": cid, "to": iid, "label": f"Description mentions Ukraine ({len(recs)} record{'s' * (len(recs) > 1)})", "kind": "computed", "layer": "lobbying",
-                          "src": {"doc": LOBBY_FILES[ds[0]], "github": gh(LOBBY_FILES[ds[0]]), "loc": "Description column"}})
+                          "src": {"doc": dsfile[ds[0]], "github": gh(dsfile[ds[0]]), "loc": "Description column"}})
         else:
             edges.append({"from": cid, "to": iid, "label": f"Lobbied: {len(recs)} record{'s' * (len(recs) > 1)}", "kind": "data", "layer": "lobbying", "weight": len(recs),
-                          "src": {"doc": LOBBY_FILES[ds[0]], "github": gh(LOBBY_FILES[ds[0]]), "loc": ", ".join(sorted({r['date'] for r in recs}))[:120], "url": recs[0].get("url")}})
+                          "src": {"doc": dsfile[ds[0]], "github": gh(dsfile[ds[0]]), "loc": ", ".join(sorted({r['date'] for r in recs}))[:120], "url": recs[0].get("url")}})
     for (ds, iid), n in agg.items():
         edges.append({"from": ds, "to": iid, "label": f"{n} lobbying record{'s' * (n > 1)} name this institution", "kind": "data", "layer": "lobbying-summary", "weight": n,
-                      "src": {"doc": LOBBY_FILES[ds], "github": gh(LOBBY_FILES[ds]), "loc": "Government Institutions"}})
-    for ds in LOBBY_FILES:
+                      "src": {"doc": dsfile[ds], "github": gh(dsfile[ds]), "loc": "Government Institutions"}})
+    for ds in dsfile:
         for cid in [k for k, v in nodes.items() if ds in v.get("datasets", ())]:
             edges.append({"from": ds, "to": cid, "label": "Client in table", "kind": "data", "layer": "lobbying",
-                          "src": {"doc": LOBBY_FILES[ds], "github": gh(LOBBY_FILES[ds]), "loc": "Client / Organization"}})
+                          "src": {"doc": dsfile[ds], "github": gh(dsfile[ds]), "loc": "Client / Organization"}})
     for c in cur["cases"]:
         for nid, n in nodes.items():
             if c["id"] in n["cases"] and n["type"] != "case":
@@ -505,15 +640,20 @@ def build_graph(cur, lob, files):
     return {"nodes": out_nodes, "edges": edges}
 
 
-def timeline(cur, lob, videos):
+def timeline(cur, lob, videos, files):
     folders = cur["folders"]
+    paths = {f["path"] for f in files}
+    dsfile = {d["id"]: d["file"] for d in lob["datasets"]}
     ev = []
     for e in cur["events"]:
         src = dict(e["src"], doc=expand(e["src"]["doc"], folders))
+        if src["doc"] not in paths:  # reported by the graph check above
+            continue
         src["github"] = gh(src["doc"])
         ev.append(dict(e, src=src, layer="evidence"))
     for c in cur["cases"]:
-        ev.append({"date": c["date"], "title": f"Case published: {c['title']}", "case": c["id"], "layer": "archive"})
+        if c.get("date"):
+            ev.append({"date": c["date"], "title": f"Case published: {c['title']}", "case": c["id"], "layer": "archive"})
     for v in videos:
         ev.append({"date": v["date"], "title": f"Video: {v['title']}", "layer": "video", "url": f"https://youtu.be/{v['id']}"})
     by_day = defaultdict(list)
@@ -522,7 +662,7 @@ def timeline(cur, lob, videos):
     for (d, ds), rs in by_day.items():
         clients = sorted({r["client"] for r in rs})
         ev.append({"date": d, "title": f"{len(rs)} lobbying record{'s' * (len(rs) > 1)}: {', '.join(clients)}", "dataset": ds, "layer": "lobbying",
-                   "src": {"doc": LOBBY_FILES[ds], "github": gh(LOBBY_FILES[ds])}})
+                   "src": {"doc": dsfile[ds], "github": gh(dsfile[ds])}})
     return sorted(ev, key=lambda e: e["date"])
 
 
@@ -538,18 +678,27 @@ def main():
     cur_folders = cur["folders"]
     for c in cur["cases"]:
         c["folder"] = expand(c["folder"] + "/x", cur_folders).rsplit("/", 1)[0]
+    cur["cases"] += new_cases(src, {c["folder"] for c in cur["cases"]})
     files = inventory(src, cur["cases"])
-    videos = json.loads((src / "assets/videos.json").read_text(encoding="utf-8"))["videos"]
-    lob = lobbying(src)
-    own = brookfield(src)
-    est = estimates(src)
-    est["recovery_index"] = recovery_index(src)
-    for k in est["recovery_index"]["catalogue_missing"]:
-        y, r = k.split()
-        check(f"Deleted round {k} (no catalogue record) present in recovered 7z", True, any(x["year"] == y and x["round"] == r for x in est["rounds"]))
-    srv = survey(src)
+    paths = {f["path"] for f in files}
+    for c in cur["cases"]:
+        if not any(p.startswith(c["folder"] + "/") for p in paths):
+            check(f"Case folder still in the archive: {c['folder']}", True, False, "renamed or removed; its card shows no files")
+    videos = json.loads((src / "assets/videos.json").read_text(encoding="utf-8"))["videos"] if (src / "assets/videos.json").is_file() else []
+    lob = section("lobbying", out, lambda: lobbying(src))
+    own = section("ownership", out, lambda: brookfield(src))
+
+    def spending():
+        est = estimates(src)
+        est["recovery_index"] = recovery_index(src)
+        for k in est["recovery_index"]["catalogue_missing"]:
+            y, r = k.split()
+            check(f"Deleted round {k} (no catalogue record) present in recovered 7z", True, any(x["year"] == y and x["round"] == r for x in est["rounds"]))
+        return est
+    est = section("estimates", out, spending)
+    srv = section("survey", out, lambda: survey(src))
     graph = build_graph(cur, lob, files)
-    tl = timeline(cur, lob, videos)
+    tl = timeline(cur, lob, videos, files)
     links = pdf_links(src)
     try:
         sha = subprocess.run(["git", "-C", str(src), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip() or None
@@ -557,10 +706,12 @@ def main():
         sha = None
     for c in cur["cases"]:
         c["files"] = [f for f in files if f["path"].startswith(c["folder"] + "/")]
-        c["video_url"] = f"https://youtu.be/{c['video']}"
+        c["video_url"] = f"https://youtu.be/{c['video']}" if c.get("video") else c.get("video_link")
     summary = {
         "built": datetime.now(timezone.utc).isoformat(timespec="seconds"), "source_repo": f"https://github.com/{REPO}", "source_commit": sha,
         "cases": cur["cases"], "videos": videos, "checks": CHECKS,
+        "new_in_archive": {"cases": [c["id"] for c in cur["cases"] if c.get("auto")],
+                           "lobbying_tables": [d["id"] for d in lob["datasets"] if d.get("auto")]},
         "counts": {"files": len(files), "nodes": len(graph["nodes"]), "edges": len(graph["edges"]), "events": len(tl),
                    "lobbying_records": len(lob["records"]), "ownership_links": own["stats"]["links"], "estimate_rounds": len(est["rounds"]),
                    "external_links": len({l["url"] for l in links}), "survey_records": srv["records"]},

@@ -1,20 +1,22 @@
 import { loadAll } from '../services/data.js';
-import { esc, int, money, date } from '../helpers/format.js';
+import { esc, int, money, date, countWord, listWords } from '../helpers/format.js';
 import { $, options, table, setParams, ext } from '../helpers/dom.js';
 import { chart } from '../helpers/chart.js';
-import { DATASET_COLORS } from '../enums/kinds.js';
+import { DATASET_COLORS, DATASET_PALETTE } from '../enums/kinds.js';
 
 export const title = 'Lobbying';
 
-const NAMES = {
-  'dataset:lobby-drones': 'Drones',
-  'dataset:lobby-telesat': 'Telesat',
-  'dataset:lobby-roshel': 'Roshel',
-  'dataset:lobby-stelco': 'Stelco',
-};
+// Filled from the data, so a lobbying table added to the archive gets a name and colour on the next build.
+const NAMES = {};
+const COLORS = {};
 
 export async function render(root, params) {
   const [lob] = await loadAll('lobbying');
+  let extra = 0;
+  lob.datasets.forEach((d) => {
+    NAMES[d.id] = d.name || d.id.replace('dataset:lobby-', '');
+    COLORS[d.id] = DATASET_COLORS[d.id] || DATASET_PALETTE[extra++ % DATASET_PALETTE.length];
+  });
   const recs = lob.records;
   const clients = [...new Set(recs.map((r) => r.client))].sort((a, b) => a.localeCompare(b));
   const insts = [...new Set(recs.flatMap((r) => r.institutions))].sort((a, b) => a.localeCompare(b));
@@ -26,16 +28,16 @@ export async function render(root, params) {
 
   root.innerHTML = `
     <h1>Lobbying records</h1>
-    <p class="lead">Four tables in the archive list ${int(recs.length)} federal Lobbying Registry records from 2026, found by
-      searching the registry for drones, Telesat, Roshel and Stelco. Each record says who lobbied, which government
+    <p class="lead">${countWord(lob.datasets.length, 'table')} in the archive list ${int(recs.length)} federal Lobbying Registry records, found by
+      searching the registry for ${esc(listWords(lob.datasets.map((d) => NAMES[d.id])))}. Each record says who lobbied, which government
       institutions they contacted, and what about. Every row links to the registry.</p>
     <div class="grid cols-2">${lob.datasets.map((d) => `
-      <div class="panel"><h3><span class="dot" style="background:${DATASET_COLORS[d.id]}"></span>${esc(NAMES[d.id])}</h3>
+      <div class="panel"><h3><span class="dot" style="background:${COLORS[d.id]}"></span>${esc(NAMES[d.id])}</h3>
         <p class="small">Search term <code>${esc(d.query)}</code> · ${esc(d.date_range)}<br>
         ${int(d.records)} records · ${int(d.distinct_institutions)} institutions · ${ext(d.url, 'archive file')}</p></div>`).join('')}
     </div>
     <div class="controls">
-      <label>Table <select id="l-ds">${options([['', 'All four tables'], ...lob.datasets.map((d) => [d.id, NAMES[d.id]])], state.ds)}</select></label>
+      <label>Table <select id="l-ds">${options([['', lob.datasets.length > 1 ? `All ${countWord(lob.datasets.length).toLowerCase()} tables` : 'The table'], ...lob.datasets.map((d) => [d.id, NAMES[d.id]])], state.ds)}</select></label>
       <label>Client <select id="l-client">${options([['', 'Any client'], ...clients.map((c) => [c, c])], state.client)}</select></label>
       <label>Institution <select id="l-inst">${options([['', 'Any institution'], ...insts.map((c) => [c, c])], state.inst)}</select></label>
       <label>Search <input id="l-q" type="search" value="${esc(state.q)}" placeholder="Words in the description, lobbyist, firm…"></label>
@@ -65,7 +67,7 @@ export async function render(root, params) {
     rows.forEach((r) => keyFn(r).forEach((k) => totals.set(k, (totals.get(k) || 0) + 1)));
     const cats = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, top).map(([k]) => k);
     const series = lob.datasets.map((d) => ({
-      name: NAMES[d.id], type: 'bar', stack: 'all', itemStyle: { color: DATASET_COLORS[d.id] },
+      name: NAMES[d.id], type: 'bar', stack: 'all', itemStyle: { color: COLORS[d.id] },
       data: cats.map((c) => rows.filter((r) => r.dataset === d.id && keyFn(r).includes(c)).length),
     }));
     return { cats, series };
@@ -91,7 +93,7 @@ export async function render(root, params) {
       grid: { left: 10, right: 20, top: 30, bottom: 10, containLabel: true },
       xAxis: { type: 'category', data: months },
       yAxis: { type: 'value', minInterval: 1 },
-      series: lob.datasets.map((d) => ({ name: NAMES[d.id], type: 'bar', stack: 'all', itemStyle: { color: DATASET_COLORS[d.id] }, data: months.map((m) => rows.filter((r) => r.dataset === d.id && r.date.startsWith(m)).length) })),
+      series: lob.datasets.map((d) => ({ name: NAMES[d.id], type: 'bar', stack: 'all', itemStyle: { color: COLORS[d.id] }, data: months.map((m) => rows.filter((r) => r.dataset === d.id && r.date.startsWith(m)).length) })),
     }, true);
 
     const b = stacked((r) => [r.client], rows, 12);
@@ -108,7 +110,7 @@ export async function render(root, params) {
     $('#l-count', root).textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
     $('#l-table', root).innerHTML = table([
       { label: 'Date', value: (r) => date(r.date) },
-      { label: 'Client', html: (r) => `<b>${esc(r.client)}</b><br><span class="badge" style="background:${DATASET_COLORS[r.dataset]}22">${esc(NAMES[r.dataset])}</span> <span class="small muted">${esc(r.type)}</span>` },
+      { label: 'Client', html: (r) => `<b>${esc(r.client)}</b><br><span class="badge" style="background:${COLORS[r.dataset]}22">${esc(NAMES[r.dataset])}</span> <span class="small muted">${esc(r.type)}</span>` },
       { label: 'Institutions', html: (r) => `<span class="small">${r.institutions.map(esc).join('<br>')}</span>` },
       { label: 'Office holders', html: (r) => `<span class="small">${r.holders.map(esc).join('<br>') || '—'}</span>` },
       { label: 'Subject', html: (r) => `<span class="small">${r.description ? esc(r.description) : '<span class="muted">not given in this table</span>'}</span>` },

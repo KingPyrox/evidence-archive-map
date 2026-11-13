@@ -1,5 +1,5 @@
 import { loadAll } from '../services/data.js';
-import { esc, int, date, bytes } from '../helpers/format.js';
+import { esc, int, date, bytes, countWord } from '../helpers/format.js';
 import { ext } from '../helpers/dom.js';
 import { EDGE_KINDS } from '../enums/kinds.js';
 
@@ -11,11 +11,13 @@ export async function render(root) {
   const evidenceEdges = g.edges.filter((e) => !e.layer).length;
   const passed = s.checks.filter((k) => k.pass).length;
   const findings = s.checks.filter((k) => !k.pass);
+  const fresh = s.new_in_archive || { cases: [], lobbying_tables: [] };
+  const freshCases = s.cases.filter((x) => fresh.cases.includes(x.id));
 
   root.innerHTML = `
     <h1>Follow the documents.</h1>
     <p class="lead">This site maps the <a href="${esc(s.source_repo)}" target="_blank" rel="noopener">Evidence-Archive</a>
-      repository: five investigations and supporting tables covering federal spending, immigration, defence and AI drones,
+      repository: ${countWord(s.cases.length).toLowerCase()} investigations and supporting tables covering federal spending, immigration, defence and AI drones,
       lobbying, corporate ownership and a COVID-19 survey. It shows who connects to whom, where the money goes, and the exact
       file behind every fact so you can check it yourself.</p>
     <div class="btn-row">
@@ -34,7 +36,16 @@ export async function render(root) {
       <div class="stat"><b>${int(c.external_links)}</b><span>original-source links</span></div>
     </div>
 
-    <h2>The five cases</h2>
+    ${freshCases.length || fresh.lobbying_tables.length ? `
+    <h2>New in the archive, not mapped yet</h2>
+    <div class="panel">
+      <p>The archive added these since the connection map was last checked by hand. Their files, dates and charts are
+        already on this site. Links between people and organizations are only drawn after someone reads the documents.</p>
+      <ul>${freshCases.map((x) => `<li><b>${esc(x.title)}</b> · ${x.files.length} files · <a href="#/sources?case=${encodeURIComponent(x.id)}">Files</a></li>`).join('')}
+        ${fresh.lobbying_tables.length ? `<li>${countWord(fresh.lobbying_tables.length, 'lobbying table')}, charted on <a href="#/lobbying">Lobbying</a></li>` : ''}</ul>
+    </div>` : ''}
+
+    <h2>The cases</h2>
     <div class="grid cols-2">${s.cases.map(caseCard).join('')}</div>
 
     <h2>How to read this site</h2>
@@ -59,15 +70,15 @@ function caseCard(c) {
   const size = c.files.reduce((a, f) => a + f.size, 0);
   const folder = `https://github.com/Vesper-Digital/Evidence-Archive/tree/main/${encodeURIComponent(c.folder)}`;
   return `<article class="panel case-card">
-    <h3>${esc(c.title)}</h3>
-    <div class="meta">Published in the archive ${esc(date(c.date))} · ${c.files.length} files · ${bytes(size)}</div>
+    <h3>${esc(c.title)}${c.auto ? ' <span class="badge">New: not mapped yet</span>' : ''}</h3>
+    <div class="meta">${c.date ? `Published in the archive ${esc(date(c.date))} · ` : ''}${c.files.length} files · ${bytes(size)}</div>
     <p>${esc(c.summary)}</p>
-    <p class="small muted">Video: “${esc(c.headline)}”</p>
+    ${c.auto ? '' : `<p class="small muted">Video: “${esc(c.headline)}”</p>`}
     <div class="btn-row">
       <a class="btn small" href="#/map?case=${encodeURIComponent(c.id)}">Map</a>
       <a class="btn small secondary" href="#/timeline?case=${encodeURIComponent(c.id)}">Timeline</a>
       <a class="btn small secondary" href="#/sources?case=${encodeURIComponent(c.id)}">Files</a>
-      <span class="small">${ext(folder, 'Archive folder')} · ${ext(c.video_url, 'Video')}</span>
+      <span class="small">${ext(folder, 'Archive folder')}${c.video_url ? ` · ${ext(c.video_url, 'Video')}` : ''}</span>
     </div>
   </article>`;
 }
