@@ -1,7 +1,7 @@
 import { loadAll } from '../services/data.js';
-import { esc, date, month } from '../helpers/format.js';
-import { $, sourceHtml, options, setParams, ext } from '../helpers/dom.js';
-import { chart } from '../helpers/chart.js';
+import { esc, date, month, monthRange, monthTick } from '../helpers/format.js';
+import { $, sourceHtml, options, setParams, ext, figure, caption } from '../helpers/dom.js';
+import { chart, DECALS } from '../helpers/chart.js';
 import { caseIndex } from '../helpers/cases.js';
 import { TIMELINE_LAYERS } from '../enums/kinds.js';
 
@@ -18,6 +18,7 @@ export async function render(root, params) {
   };
   const on = params.layers ? params.layers.split(',') : Object.keys(TIMELINE_LAYERS);
   const state = { case: params.case || '', layers: new Set(on), from: params.from || '' };
+  const years = [...new Set(tl.map((e) => e.date.slice(0, 4)))].sort();
 
   root.innerHTML = `
     <h1>Timeline</h1>
@@ -25,24 +26,36 @@ export async function render(root, params) {
       dates each case was published. Each entry links to its source.</p>
     <div class="controls">
       <label>Case <select id="t-case">${options([['', 'All cases'], ...s.cases.map((c) => [c.id, c.title])], state.case)}</select></label>
-      <label>From <select id="t-from">${options([['', 'The beginning'], ['2026-01-01', '2026'], ['2026-07-01', 'July 2026'], ['2026-10-01', 'October 2026']], state.from)}</select></label>
+      <label>From <select id="t-from">${options([['', 'The beginning'], ...years.map((y) => [`${y}-01-01`, y])], state.from)}</select></label>
     </div>
     <div class="controls" id="t-layers">${Object.entries(TIMELINE_LAYERS).map(([k, v]) => `<button class="chip" aria-pressed="${state.layers.has(k)}" data-layer="${k}"><span class="dot" style="background:${v.color}"></span>${esc(v.label)}</button>`).join('')}</div>
-    <div class="panel"><div id="t-chart" class="chart" style="height:260px"></div></div>
+    ${figure('t-chart', {
+      how: 'Each bar is one month, and every month has a slot, so empty stretches are months with nothing dated. Colours and patterns show the kind of entry. Click a bar to jump to that month in the list below.',
+      src: 'the dated files, tables and video list in the Evidence-Archive.', cls: 'short',
+    })}
     <div id="t-list"></div>`;
 
   const c = chart($('#t-chart', root), {});
   function draw() {
     setParams({ case: state.case, from: state.from, layers: state.layers.size === Object.keys(TIMELINE_LAYERS).length ? '' : [...state.layers].join(',') });
     const rows = tl.filter((e) => state.layers.has(e.layer) && (!state.case || casesOf(e).includes(state.case)) && (!state.from || e.date >= state.from));
-    const months = [...new Set(rows.map((e) => e.date.slice(0, 7)))].sort();
+    const dated = rows.map((e) => e.date).sort();
+    const months = dated.length ? monthRange(dated[0].slice(0, 7), dated[dated.length - 1].slice(0, 7)) : [];
+    const perYear = new Map();
+    dated.forEach((d) => perYear.set(d.slice(0, 4), (perYear.get(d.slice(0, 4)) || 0) + 1));
+    const [busy, busyN] = [...perYear.entries()].sort((a, b) => b[1] - a[1])[0] || [];
+    caption(root, 't-chart', !rows.length ? 'No entries match these filters.'
+      : perYear.size > 1 && busyN / rows.length >= 0.75
+        ? `Most dated entries are from ${busy}: ${busyN} of ${rows.length}. The earliest is from ${esc(month(dated[0].slice(0, 7)))}.`
+        : `${rows.length} dated entries, from ${esc(month(dated[0].slice(0, 7)))} to ${esc(month(dated[dated.length - 1].slice(0, 7)))}.`);
     c.setOption({
-      legend: { top: 0 }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      ...DECALS,
+      legend: { top: 0 }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (ps) => `<b>${esc(month(months[ps[0].dataIndex]))}</b><br>${ps.filter((p) => p.value).map((p) => `${p.marker}${esc(p.seriesName)}: ${p.value}`).join('<br>') || 'Nothing dated'}` },
       grid: { left: 10, right: 20, top: 30, bottom: 10, containLabel: true },
-      xAxis: { type: 'category', data: months },
-      yAxis: { type: 'value', minInterval: 1 },
+      xAxis: { type: 'category', data: months, axisLabel: { interval: 0, formatter: monthTick(months.length) }, axisTick: { alignWithLabel: true } },
+      yAxis: { type: 'value', minInterval: 1, name: 'entries' },
       series: Object.entries(TIMELINE_LAYERS).filter(([k]) => state.layers.has(k)).map(([k, v]) => ({
-        name: v.label, type: 'bar', stack: 'all', itemStyle: { color: v.color },
+        name: v.label, type: 'bar', stack: 'all', itemStyle: { color: v.color }, barMinHeight: 0,
         data: months.map((m) => rows.filter((e) => e.layer === k && e.date.startsWith(m)).length),
       })),
     }, true);

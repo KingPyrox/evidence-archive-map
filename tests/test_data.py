@@ -54,6 +54,8 @@ class DataContract(unittest.TestCase):
         for e in self.g["edges"]:
             if e.get("amount") and not e.get("layer"):
                 self.assertTrue(e.get("money"), e["label"])
+                # the money page never puts two kinds of money on one scale
+                self.assertIn(e.get("money_kind"), enum_keys("MONEY_KINDS"), e["label"])
 
     def test_lobbying_records_have_every_field(self):
         lob = load("lobbying")

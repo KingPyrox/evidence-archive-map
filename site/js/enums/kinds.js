@@ -1,17 +1,28 @@
 // Node types and evidence kinds used across the site. One place to change colours and wording.
+// Every node type has its own shape as well as its own colour, so the map does not rely on colour alone.
 export const NODE_TYPES = {
   case: { label: 'Case (archive folder)', color: '#be123c', symbol: 'roundRect' },
   claim: { label: 'Claim made in the archive', color: '#dc2626', symbol: 'diamond' },
-  government: { label: 'Federal government body', color: '#1d4ed8', symbol: 'circle' },
-  international: { label: 'International organization', color: '#7c3aed', symbol: 'circle' },
+  government: { label: 'Federal government body', color: '#1d4ed8', symbol: 'rect' },
+  international: { label: 'International organization', color: '#7c3aed', symbol: 'pin' },
   person: { label: 'Person', color: '#047857', symbol: 'circle' },
-  company: { label: 'Company', color: '#ea580c', symbol: 'circle' },
-  program: { label: 'Program, policy or process', color: '#0e7490', symbol: 'circle' },
-  country: { label: 'Country', color: '#65a30d', symbol: 'triangle' },
-  dataset: { label: 'Dataset or table', color: '#475569', symbol: 'rect' },
-  publisher: { label: 'Publisher', color: '#8b8b8b', symbol: 'circle' },
-  'lobby-client': { label: 'Lobbying client', color: '#d97706', symbol: 'circle' },
-  institution: { label: 'Institution named in lobbying records', color: '#93c5fd', symbol: 'circle' },
+  company: { label: 'Company', color: '#ea580c', symbol: 'triangle' },
+  program: { label: 'Program, policy or process', color: '#0e7490', symbol: 'emptyDiamond' },
+  country: { label: 'Country', color: '#65a30d', symbol: 'emptyTriangle' },
+  dataset: { label: 'Dataset or table', color: '#475569', symbol: 'emptyRect' },
+  publisher: { label: 'Publisher', color: '#8b8b8b', symbol: 'emptyRoundRect' },
+  'lobby-client': { label: 'Lobbying client', color: '#d97706', symbol: 'emptyPin' },
+  institution: { label: 'Institution named in lobbying records', color: '#2e90fa', symbol: 'emptyCircle' },
+};
+
+// Kinds of money. The money page shows each kind on its own, because amounts of different kinds
+// (one year's budget, a five-year proposal, a contract ceiling) cannot be compared on one scale.
+// curated.json sets money_kind on every edge with an amount.
+export const MONEY_KINDS = {
+  budget: { label: 'One year of federal spending', help: 'Amounts in the Main Estimates, the budget a department is given for one fiscal year.' },
+  grant: { label: 'Grants', help: 'Money paid to an organization over the period shown, often several years.' },
+  proposal: { label: 'Proposed, not yet spent', help: 'Money a federal budget proposes to spend in future years.' },
+  contract: { label: 'Contracts, the most they could be worth', help: 'Announced contract ceilings. The amount actually paid can be lower.' },
 };
 
 export const EDGE_KINDS = {

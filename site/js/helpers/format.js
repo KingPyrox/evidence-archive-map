@@ -12,10 +12,11 @@ export function money(v, cents = false) {
 export function moneyShort(v) {
   if (v == null) return '';
   const a = Math.abs(v);
-  if (a >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
-  if (a >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
-  if (a >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
-  return `$${v.toFixed(0)}`;
+  const sign = v < 0 ? '-' : '';
+  if (a >= 1e9) return `${sign}$${(a / 1e9).toFixed(2)}B`;
+  if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${sign}$${(a / 1e3).toFixed(0)}K`;
+  return `${sign}$${a.toFixed(0)}`;
 }
 
 export function date(s) {
@@ -31,6 +32,26 @@ export function month(s) {
 
 export const bytes = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : n >= 1e3 ? `${(n / 1e3).toFixed(0)} KB` : `${n} B`);
 export const fileName = (p) => p.split('/').pop();
+
+// Every month from first to last ('YYYY-MM'), so a month axis has a slot for empty months and gaps look like gaps.
+export function monthRange(first, last) {
+  const out = [];
+  let [y, m] = first.split('-').map(Number);
+  const [Y, M] = last.split('-').map(Number);
+  while (y < Y || (y === Y && m <= M)) {
+    out.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if (m > 12) { m = 1; y += 1; }
+  }
+  return out;
+}
+
+// Axis label for a month slot: month names on a short range, only the year (each January) on a long one.
+export const monthTick = (count) => (v, i) => {
+  const jan = i === 0 || v.endsWith('-01');
+  if (count > 18) return jan ? v.slice(0, 4) : '';
+  return new Date(`${v}-15T12:00:00`).toLocaleDateString('en-CA', jan ? { month: 'short', year: 'numeric' } : { month: 'short' });
+};
 
 const WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
 // countWord(4, 'table') -> 'Four tables'. Numbers above ten stay as digits.

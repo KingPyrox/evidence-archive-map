@@ -39,9 +39,10 @@ blockquote { margin: .4rem 0 0; padding: .4rem .8rem; border-left: 3px solid var
 .brand span { color: #f87171; }
 .tagline { color: #a6adbb; font-size: .9rem; }
 nav.main-nav { max-width: 1280px; margin: 0 auto; padding: 0 .8rem; display: flex; gap: .2rem; overflow-x: auto; scrollbar-width: thin; }
-nav.main-nav a { color: #d0d5dd; text-decoration: none; padding: .6rem .7rem; white-space: nowrap; border-bottom: 3px solid transparent; font-size: .95rem; }
+nav.main-nav a { color: #d0d5dd; text-decoration: none; padding: .6rem .45rem; white-space: nowrap; border-bottom: 3px solid transparent; font-size: .93rem; }
 nav.main-nav a:hover { color: #fff; }
 nav.main-nav a.active { color: #fff; border-bottom-color: #f87171; }
+nav.main-nav .nav-group { color: #8b93a3; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; padding: .85rem .1rem 0 .6rem; margin-left: .2rem; border-left: 1px solid #343a46; white-space: nowrap; }
 
 main { max-width: 1280px; margin: 0 auto; padding: 1.4rem 1.2rem 3rem; }
 .site-footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
@@ -92,6 +93,26 @@ details summary { cursor: pointer; color: var(--link); }
 
 /* charts */
 .chart { width: 100%; height: 420px; }
+.chart.short { height: 300px; }
+.fig { margin: 0 0 1rem; }
+.fig-title { font-size: 1.05rem; margin-bottom: .2rem; }
+.fig-how { color: var(--muted); font-size: .9rem; margin-bottom: .5rem; max-width: 80ch; }
+.fig-how:empty { display: none; }
+.fig-src { font-size: .82rem; color: var(--muted); margin: .4rem 0 0; }
+
+/* overview findings */
+.findings { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin: 1rem 0 1.5rem; }
+.finding { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--radius); padding: .9rem 1.1rem; display: flex; flex-direction: column; }
+.finding b { font-size: 1.7rem; line-height: 1.1; margin-bottom: .3rem; }
+.finding p { margin: 0 0 .6rem; }
+.finding .small { margin-top: auto; margin-bottom: 0; }
+.stats.quiet .stat b { font-size: 1.15rem; }
+
+/* money cards */
+.money-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .8rem; margin-bottom: 1rem; }
+.money-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: .8rem 1rem; }
+.money-card .amount { display: block; font-size: 1.45rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.money-card .what { font-weight: 600; margin: .2rem 0; }
 .chart.tall { height: 640px; }
 .chart.xtall { height: 820px; }
 
@@ -122,7 +143,15 @@ details summary { cursor: pointer; color: var(--link); }
 .chip { display: inline-flex; align-items: center; gap: .3rem; border: 1px solid #d0d5dd; border-radius: 999px; padding: .2rem .7rem; background: #fff; cursor: pointer; font-size: .88rem; }
 .chip[aria-pressed=false] { opacity: .45; }
 
-/* ownership */
+/* ownership: an indented list built from native <details>, so it opens and closes with the keyboard */
+.o-tree { font-size: .92rem; max-height: 75vh; overflow: auto; }
+.o-tree ul { list-style: none; margin: 0; padding-left: 1.3rem; border-left: 1px solid var(--line); }
+.o-tree > ul { padding-left: 0; border-left: 0; }
+.o-tree li { margin: .1rem 0; }
+.o-tree li.leaf { padding-left: 1.05rem; }
+.o-tree summary { color: inherit; }
+.o-tree .o-pct { font-variant-numeric: tabular-nums; font-weight: 600; }
+.o-tree .hit { background: #fef0c7; outline: 2px solid #f59e0b; border-radius: 4px; }
 .path { font-size: .88rem; }
 .path span + span::before { content: " › "; color: var(--muted); }
 

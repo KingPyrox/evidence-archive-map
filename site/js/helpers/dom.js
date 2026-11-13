@@ -14,6 +14,22 @@ export function sourceHtml(src) {
   return `<div class="src">Archive file: <a href="${esc(src.github)}" target="_blank" rel="noopener">${esc(fileName(src.doc))}</a>${where}${orig}${quote}</div>`;
 }
 
+// A chart with the three lines a reader needs: a sentence saying what it shows, how to read it, and where the data
+// comes from. title, how and src are HTML. Views that redraw call caption() to update the first two.
+export function figure(id, { title = '', how = '', src = '', cls = '' } = {}) {
+  return `<figure class="panel fig">
+    <h3 class="fig-title" id="${id}-title">${title}</h3>
+    <p class="fig-how" id="${id}-how">${how}</p>
+    <div id="${id}" class="chart ${cls}" role="img" aria-labelledby="${id}-title ${id}-how"></div>
+    ${src ? `<p class="fig-src">Source: ${src}</p>` : ''}
+  </figure>`;
+}
+
+export function caption(root, id, title, how) {
+  $(`#${id}-title`, root).innerHTML = title;
+  if (how != null) $(`#${id}-how`, root).innerHTML = how;
+}
+
 export function table(cols, rows, { empty = 'Nothing to show.' } = {}) {
   if (!rows.length) return `<p class="muted">${esc(empty)}</p>`;
   const head = cols.map((c) => `<th class="${c.num ? 'num' : ''}" scope="col">${esc(c.label)}</th>`).join('');

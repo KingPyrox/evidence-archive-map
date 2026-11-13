@@ -66,11 +66,11 @@ No build step and no npm. The site is plain HTML, CSS and ES modules. The only l
 ## Deploy
 
 `.github/workflows/deploy.yml` builds the data from the latest Evidence-Archive, runs the tests and publishes `site/` to
-GitHub Pages. It runs on every push to `main` and on demand. Every 30 minutes it checks the archive's latest commit against
-`source_commit` in the live `data/summary.json` and rebuilds only when they differ. A commit that fails to build is not
-retried on the schedule for 7 days (run the workflow by hand to retry sooner). Failed archive checks show as warnings on
-the run. A daily job pushes an empty commit if `main` has been quiet for 45 days, because GitHub turns off schedules in
-public repos after 60 days without activity. To turn Pages on, go to **Settings → Pages → Source** and choose
+GitHub Pages. It runs on every push to `main` and on demand. Once a day (09:17 UTC) it checks the archive's latest commit
+against `source_commit` in the live `data/summary.json` and rebuilds only when they differ. A commit that fails to build is
+not retried on the schedule for 7 days (run the workflow by hand to retry sooner). Failed archive checks show as warnings
+on the run. The same daily run pushes an empty commit if `main` has been quiet for 45 days, because GitHub turns off
+schedules in public repos after 60 days without activity. To turn Pages on, go to **Settings → Pages → Source** and choose
 **GitHub Actions**.
 
 The site is static, so any static host works (Vercel, Netlify, Cloudflare Pages). Point it at `site/` with no build command.

@@ -1,7 +1,7 @@
 import { loadAll } from '../services/data.js';
-import { esc, int, money, date, countWord, listWords } from '../helpers/format.js';
-import { $, options, table, setParams, ext } from '../helpers/dom.js';
-import { chart } from '../helpers/chart.js';
+import { esc, int, money, date, month, countWord, listWords, fileName, monthRange, monthTick } from '../helpers/format.js';
+import { $, options, table, setParams, ext, figure, caption } from '../helpers/dom.js';
+import { chart, DECALS } from '../helpers/chart.js';
 import { DATASET_COLORS, DATASET_PALETTE } from '../enums/kinds.js';
 
 export const title = 'Lobbying';
@@ -9,6 +9,16 @@ export const title = 'Lobbying';
 // Filled from the data, so a lobbying table added to the archive gets a name and colour on the next build.
 const NAMES = {};
 const COLORS = {};
+
+// Axis label for an institution: its name when short, else the registry's own abbreviation, e.g. "(ISED)".
+// The tooltip always shows the full name.
+function instLabel(s) {
+  const name = s.replace(/\s*\([^)]*\)$/, '');
+  const code = (s.match(/\(([A-Za-z]+)\)$/) || [])[1];
+  return name.length <= 32 ? name : code || `${name.slice(0, 31)}…`;
+}
+
+const stackTip = (cats) => (ps) => `<b>${esc(cats[ps[0].dataIndex])}</b><br>${ps.filter((p) => p.value).map((p) => `${p.marker}${esc(p.seriesName)}: ${p.value}`).join('<br>')}`;
 
 export async function render(root, params) {
   const [lob] = await loadAll('lobbying');
@@ -25,27 +35,35 @@ export async function render(root, params) {
     const near = insts.find((i) => i.toLowerCase().startsWith(state.inst.toLowerCase()));
     state.inst = near || '';
   }
+  const src = lob.datasets.map((d) => ext(d.url, fileName(d.file))).join(' · ');
+  const multi = lob.datasets.length > 1;
 
   root.innerHTML = `
     <h1>Lobbying records</h1>
     <p class="lead">${countWord(lob.datasets.length, 'table')} in the archive list ${int(recs.length)} federal Lobbying Registry records, found by
       searching the registry for ${esc(listWords(lob.datasets.map((d) => NAMES[d.id])))}. Each record says who lobbied, which government
       institutions they contacted, and what about. Every row links to the registry.</p>
+    <p class="small muted">A lobbying record shows that a meeting or contact was registered. It does not show what was decided.</p>
     <div class="grid cols-2">${lob.datasets.map((d) => `
       <div class="panel"><h3><span class="dot" style="background:${COLORS[d.id]}"></span>${esc(NAMES[d.id])}</h3>
         <p class="small">Search term <code>${esc(d.query)}</code> · ${esc(d.date_range)}<br>
         ${int(d.records)} records · ${int(d.distinct_institutions)} institutions · ${ext(d.url, 'archive file')}</p></div>`).join('')}
     </div>
     <div class="controls">
-      <label>Table <select id="l-ds">${options([['', lob.datasets.length > 1 ? `All ${countWord(lob.datasets.length).toLowerCase()} tables` : 'The table'], ...lob.datasets.map((d) => [d.id, NAMES[d.id]])], state.ds)}</select></label>
+      <label>Table <select id="l-ds">${options([['', multi ? `All ${countWord(lob.datasets.length).toLowerCase()} tables` : 'The table'], ...lob.datasets.map((d) => [d.id, NAMES[d.id]])], state.ds)}</select></label>
       <label>Client <select id="l-client">${options([['', 'Any client'], ...clients.map((c) => [c, c])], state.client)}</select></label>
       <label>Institution <select id="l-inst">${options([['', 'Any institution'], ...insts.map((c) => [c, c])], state.inst)}</select></label>
       <label>Search <input id="l-q" type="search" value="${esc(state.q)}" placeholder="Words in the description, lobbyist, firm…"></label>
     </div>
     <div class="grid cols-2">
-      <div class="panel"><h3>Institutions contacted most</h3><div id="l-inst-chart" class="chart tall"></div></div>
-      <div class="panel"><h3>Records by month</h3><div id="l-month" class="chart" style="height:300px"></div>
-        <h3>Clients</h3><div id="l-clients" class="chart" style="height:300px"></div></div>
+      ${figure('l-inst-chart', {
+        how: `Each bar counts the records that name the institution. One record can name several institutions.${multi ? ' Colours and patterns show which table a record comes from.' : ''} Click a bar to show only its records.`,
+        src, cls: 'tall',
+      })}
+      <div>
+        ${figure('l-month', { how: 'Each bar is one month. Every month has a slot, so gaps are months with no records.', src, cls: 'short' })}
+        ${figure('l-clients', { how: 'Click a bar to show only that client.', src, cls: 'short' })}
+      </div>
     </div>
     <h2 id="l-count"></h2>
     <div id="l-table"></div>`;
@@ -65,40 +83,52 @@ export async function render(root, params) {
   function stacked(keyFn, rows, top) {
     const totals = new Map();
     rows.forEach((r) => keyFn(r).forEach((k) => totals.set(k, (totals.get(k) || 0) + 1)));
-    const cats = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, top).map(([k]) => k);
+    const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, top);
+    const cats = ranked.map(([k]) => k);
     const series = lob.datasets.map((d) => ({
       name: NAMES[d.id], type: 'bar', stack: 'all', itemStyle: { color: COLORS[d.id] },
       data: cats.map((c) => rows.filter((r) => r.dataset === d.id && keyFn(r).includes(c)).length),
     }));
-    return { cats, series };
+    return { cats, series, first: ranked[0] };
   }
 
   function draw() {
     setParams(state);
     const rows = filtered();
+    const none = 'No records match these filters.';
+
     const a = stacked((r) => r.institutions, rows, 20);
+    caption(root, 'l-inst-chart', a.first ? `${esc(a.first[0])} is named in the most records: ${a.first[1]} of ${rows.length}.` : none);
     instChart.setOption({
-      legend: { top: 0 }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true },
-      grid: { left: 10, right: 20, top: 30, bottom: 10, containLabel: true },
+      ...DECALS,
+      legend: { top: 0, show: multi }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: stackTip(a.cats) },
+      grid: { left: 24, right: 20, top: multi ? 30 : 10, bottom: 10, containLabel: true },
       xAxis: { type: 'value', minInterval: 1 },
-      yAxis: { type: 'category', inverse: true, data: a.cats.map((c) => (c.length > 44 ? `${c.slice(0, 43)}…` : c)) },
+      yAxis: { type: 'category', inverse: true, data: a.cats.map(instLabel) },
       series: a.series,
     }, true);
     instChart.off('click');
     instChart.on('click', (p) => { state.inst = a.cats[p.dataIndex]; $('#l-inst', root).value = state.inst; draw(); });
 
-    const months = [...new Set(rows.map((r) => r.date.slice(0, 7)))].sort();
+    const dates = rows.map((r) => r.date.slice(0, 7)).sort();
+    const months = dates.length ? monthRange(dates[0], dates[dates.length - 1]) : [];
+    const perMonth = months.map((m) => rows.filter((r) => r.date.startsWith(m)).length);
+    const peak = perMonth.indexOf(Math.max(...perMonth));
+    caption(root, 'l-month', rows.length ? `${month(months[peak])} had the most records: ${perMonth[peak]}.` : none);
     monthChart.setOption({
-      legend: { top: 0 }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      grid: { left: 10, right: 20, top: 30, bottom: 10, containLabel: true },
-      xAxis: { type: 'category', data: months },
+      ...DECALS,
+      legend: { top: 0, show: multi }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { left: 10, right: 20, top: multi ? 30 : 10, bottom: 10, containLabel: true },
+      xAxis: { type: 'category', data: months, axisLabel: { interval: 0, formatter: monthTick(months.length) } },
       yAxis: { type: 'value', minInterval: 1 },
       series: lob.datasets.map((d) => ({ name: NAMES[d.id], type: 'bar', stack: 'all', itemStyle: { color: COLORS[d.id] }, data: months.map((m) => rows.filter((r) => r.dataset === d.id && r.date.startsWith(m)).length) })),
     }, true);
 
     const b = stacked((r) => [r.client], rows, 12);
+    caption(root, 'l-clients', b.first ? `${esc(b.first[0])} has the most records: ${b.first[1]} of ${rows.length}.` : none);
     clientChart.setOption({
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true },
+      ...DECALS,
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: stackTip(b.cats) },
       grid: { left: 10, right: 20, top: 10, bottom: 10, containLabel: true },
       xAxis: { type: 'value', minInterval: 1 },
       yAxis: { type: 'category', inverse: true, data: b.cats.map((c) => (c.length > 40 ? `${c.slice(0, 39)}…` : c)) },
@@ -117,7 +147,7 @@ export async function render(root, params) {
       { label: 'Lobbyist / firm', html: (r) => `<span class="small">${esc(r.registrant || '')}${r.firm ? `<br><i>${esc(r.firm)}</i>` : ''}</span>` },
       { label: 'Gov. funding reported', num: true, value: (r) => (r.funding ? money(r.funding) : '—') },
       { label: 'Registry', html: (r) => (r.url ? ext(r.url, r.comm_id || r.reg_id || 'open') : esc(r.reg_id || '')) },
-    ], rows, { empty: 'No records match these filters.' });
+    ], rows, { empty: none });
   }
 
   $('#l-ds', root).addEventListener('change', (ev) => { state.ds = ev.target.value; draw(); });

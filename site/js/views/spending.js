@@ -1,6 +1,6 @@
 import { loadAll } from '../services/data.js';
 import { esc, money, moneyShort } from '../helpers/format.js';
-import { $, options, table, setParams, ext } from '../helpers/dom.js';
+import { $, options, table, setParams, ext, figure, caption } from '../helpers/dom.js';
 import { chart } from '../helpers/chart.js';
 
 export const title = 'Federal spending';
@@ -28,15 +28,18 @@ export async function render(root, params) {
     <div class="controls">
       <label>Department <select id="s-org">${options(orgs.map((o) => [o, o]), state.org)}</select></label>
     </div>
-    <div class="panel"><div id="s-org-chart" class="chart"></div>
-      <p class="small muted">“Total after this round” is the <i>Proposed Authorities To Date</i> column (or the Main Estimates
-        column for Main rounds), summed over every line the table lists for the department. “Asked for in this round” is that total minus
-        the authorities the department already had.</p></div>
+    ${figure('s-org-chart', {
+      how: 'Each bar is the department\'s total budget after one round. <b>Blue</b> bars are rounds with an open.canada.ca catalogue record; <b>orange</b> bars are rounds the recovery index says had none. The red line is how much more the department asked for in that round.',
+      src: ext(est.url, est.file.split('/').pop()),
+    })}
+    <p class="small muted">“Total after this round” is the <i>Proposed Authorities To Date</i> column (or the Main Estimates
+      column for Main rounds), summed over every line the table lists for the department. “Asked for in this round” is that total minus
+      the authorities the department already had.</p>
     <div id="s-org-table"></div>
 
     <h2>Biggest departments in one round</h2>
     <div class="controls"><label>Round <select id="s-round">${options(rounds.map((r) => [r, r]), state.round)}</select></label></div>
-    <div class="panel"><div id="s-top" class="chart tall"></div></div>
+    ${figure('s-top', { how: 'Each bar is one department\'s total after the round, largest first. Click a bar to see that department across every round above.', src: ext(est.url, est.file.split('/').pop()), cls: 'tall' })}
 
     <h2>Which rounds and tables were recovered</h2>
     <p>Green rounds have an Open Government catalogue record. Amber rounds had <b>no catalogue record</b>, according to the
@@ -61,6 +64,8 @@ export async function render(root, params) {
   function drawOrg() {
     const d = est.orgs[state.org];
     const rows = rounds.filter((k) => d[k]).map((k) => ({ key: k, ...d[k], asked: d[k].to_date != null ? d[k].proposed - d[k].to_date : null }));
+    const last = rows[rows.length - 1];
+    caption(root, 's-org-chart', `${esc(state.org)}: ${moneyShort(last.proposed)} after its latest round, ${esc(last.key)}. It appears in ${rows.length === rounds.length ? `all ${rounds.length}` : `${rows.length} of ${rounds.length}`} rounds.`);
     orgChart.setOption({
       grid: { left: 10, right: 20, top: 40, bottom: 10, containLabel: true },
       legend: { top: 0 },
@@ -83,6 +88,7 @@ export async function render(root, params) {
   const topChart = chart($('#s-top', root), {});
   function drawTop() {
     const list = Object.entries(est.orgs).filter(([, v]) => v[state.round]).map(([k, v]) => [k, v[state.round].proposed]).sort((a, b) => b[1] - a[1]).slice(0, 20);
+    caption(root, 's-top', `In ${esc(state.round)}, ${esc(list[0][0])} had the largest total: ${moneyShort(list[0][1])}. The 20 largest are shown.`);
     topChart.setOption({
       grid: { left: 10, right: 80, top: 10, bottom: 10, containLabel: true },
       tooltip: { trigger: 'item', confine: true, formatter: (p) => `${esc(p.name)}<br><b>${money(p.value)}</b>` },

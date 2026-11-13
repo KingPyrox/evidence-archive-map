@@ -8,6 +8,10 @@ export function chart(el, option) {
   return c;
 }
 
+// Pattern fills on top of colour, for charts where colour tells series apart (WCAG 1.4.1).
+// Spread into an option: setOption({ ...DECALS, series: [...] }).
+export const DECALS = { aria: { enabled: true, decal: { show: true } } };
+
 export function disposeAll() {
   live.forEach((c) => c.dispose());
   live.clear();

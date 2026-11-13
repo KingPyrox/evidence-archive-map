@@ -5,8 +5,7 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: "*/30 * * * *"   # check the Evidence-Archive for new commits every 30 minutes
-    - cron: "17 9 * * *"     # daily: also keeps this schedule from being auto-disabled
+    - cron: "17 9 * * *"   # once a day, 5:47 a.m. Newfoundland time: check the Evidence-Archive for new commits
 
 permissions:
   contents: read
@@ -96,7 +95,7 @@ jobs:
         with:
           path: site
 
-      - name: Remember this archive commit, so a broken one is not rebuilt every 30 minutes
+      - name: Remember this archive commit, so a broken one is not rebuilt every day
         if: always()
         run: mkdir -p .seen && echo "${{ needs.check.outputs.sha }}" > .seen/sha
 
@@ -123,7 +122,7 @@ jobs:
   # Builds do not commit, so push an empty commit when main has been quiet for 45 days.
   # A push made with GITHUB_TOKEN does not start a new workflow run, so this cannot loop.
   keepalive:
-    if: github.event.schedule == '17 9 * * *'
+    if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
       contents: write

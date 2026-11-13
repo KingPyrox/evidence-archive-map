@@ -477,7 +477,8 @@
         "loc": "slide 4",
         "quote": "Support to IOM for Canada's Resettlement and Complementary Pathways Activities Globally. Agreement G228665001, ref 094-2023-2024-Q4-G228665001."
       },
-      "money": "IRCC grant (amended), 2021 to 2025"
+      "money": "IRCC grant (amended), 2021 to 2025",
+      "money_kind": "grant"
     },
     {
       "from": "org:ircc",
@@ -490,7 +491,8 @@
         "loc": "slide 5",
         "quote": "IOM Global Resettlement and Complementary Pathways Activities. Agreement G258665002, ref 094-2025-2026-Q4-G258665002."
       },
-      "money": "IRCC grant (amended), 2025 to 2028"
+      "money": "IRCC grant (amended), 2025 to 2028",
+      "money_kind": "grant"
     },
     {
       "from": "org:ircc",
@@ -503,7 +505,8 @@
         "loc": "slide 26",
         "quote": "Support to UNHCR for Global Resettlement Activities. Agreement G228665002, ref 094-2023-2024-Q4-G228665002."
       },
-      "money": "IRCC grant (amended), 2021 to 2025"
+      "money": "IRCC grant (amended), 2021 to 2025",
+      "money_kind": "grant"
     },
     {
       "from": "org:iom",
@@ -568,7 +571,8 @@
         "loc": "slide 3",
         "quote": "Expenditures by Purpose, Table 1. ORIGINAL annual estimate. REF ROW 184."
       },
-      "money": "Main Estimates FY 2026-27, one IRCC program"
+      "money": "Main Estimates FY 2026-27, one IRCC program",
+      "money_kind": "budget"
     },
     {
       "from": "org:ircc",
@@ -581,7 +585,8 @@
         "quote": "Total spending across standard objects, Main Estimates, FY 2026-27. REF ROW 46."
       },
       "amount": 4416881617,
-      "money": "Main Estimates FY 2026-27, IRCC department total"
+      "money": "Main Estimates FY 2026-27, IRCC department total",
+      "money_kind": "budget"
     },
     {
       "from": "dataset:estimates",
@@ -751,7 +756,8 @@
         "loc": "p. 2",
         "quote": "Kraken already held Canadian Navy contracts announced in 2022 worth up to C$57.9 million. That is earlier defence work, not the value of this new deal."
       },
-      "money": "Navy contracts announced in 2022 (up to)"
+      "money": "Navy contracts announced in 2022 (up to)",
+      "money_kind": "contract"
     },
     {
       "from": "org:sefine",
@@ -893,7 +899,8 @@
         "loc": "p. 8",
         "url": "https://www.pm.gc.ca/en/news/news-releases/2026/09/10/canada-and-ukraine-scale-drone-production-build-canadas-defence"
       },
-      "money": "Initial drone and unmanned-vehicle contracts (up to)"
+      "money": "Initial drone and unmanned-vehicle contracts (up to)",
+      "money_kind": "contract"
     },
     {
       "from": "org:ciel",
@@ -929,7 +936,8 @@
         "url": "https://budget.canada.ca/2026/report-rapport/chap5-en.html",
         "quote": "It is proposed program funding, not money awarded to the Turkish partnerships."
       },
-      "money": "Proposed in Budget 2026, over five years from 2027-28"
+      "money": "Proposed in Budget 2026, over five years from 2027-28",
+      "money_kind": "proposal"
     },
     {
       "from": "org:tbs",
@@ -1052,6 +1060,7 @@
       "kind": "stated",
       "amount": 381708,
       "money": "CIHR grant shown on the case thumbnail: Coronavirus Outbreak: Mapping and Countering Misinformation",
+      "money_kind": "grant",
       "src": {
         "doc": "@tim/Tim.jpg",
         "loc": "thumbnail graphic",
@@ -1065,6 +1074,7 @@
       "kind": "stated",
       "amount": 1500000,
       "money": "CIHR grant shown on the case thumbnail: Healthy Information Ecosystems",
+      "money_kind": "grant",
       "src": {
         "doc": "@tim/Tim.jpg",
         "loc": "thumbnail graphic",
@@ -1078,6 +1088,7 @@
       "kind": "stated",
       "amount": 1500000,
       "money": "CIHR grant shown on the case thumbnail: Misinformation and Public Health",
+      "money_kind": "grant",
       "src": {
         "doc": "@tim/Tim.jpg",
         "loc": "thumbnail graphic",

@@ -1,6 +1,6 @@
 import { loadAll } from '../services/data.js';
 import { esc } from '../helpers/format.js';
-import { $, sourceHtml, options, setParams, table } from '../helpers/dom.js';
+import { $, sourceHtml, options, setParams, table, figure, caption } from '../helpers/dom.js';
 import { chart } from '../helpers/chart.js';
 import { caseIndex, nodeCases } from '../helpers/cases.js';
 import { NODE_TYPES, EDGE_KINDS, LAYERS } from '../enums/kinds.js';
@@ -8,8 +8,11 @@ import { NODE_TYPES, EDGE_KINDS, LAYERS } from '../enums/kinds.js';
 export const title = 'Connection map';
 
 const TABLES = 'tables';
-const DEFAULT_LAYERS = ['evidence', 'lobbying', 'case'];
-const ALWAYS_LABEL = new Set(['case', 'claim', 'government', 'international', 'person', 'company', 'program', 'country']);
+const ALL = 'all';
+// The map opens on one case with lobbying off: the full graph has about 500 lines and reads as a hairball.
+const DEFAULT_LAYERS = ['evidence', 'case'];
+const LOBBY_LAYERS = ['lobbying', 'lobbying-summary'];
+const LABELS = 10; // only the most connected names are labelled; hover or click a dot for the rest
 const TYPES = Object.keys(NODE_TYPES);
 const PAGES = {
   'org:brookfield': ['#/ownership', 'Explore the ownership tree'],
@@ -31,17 +34,17 @@ export async function render(root, params) {
   const idx = caseIndex(s.cases);
   const byId = Object.fromEntries(g.nodes.map((n) => [n.id, n]));
   const state = {
-    case: params.case || '',
+    case: params.case || s.cases[0].id,
     layers: new Set(params.layers ? params.layers.split(',') : DEFAULT_LAYERS),
     node: params.node || '',
   };
 
   root.innerHTML = `
     <h1>Connection map</h1>
-    <p class="lead">Each dot is a person, organization, program, dataset or claim. Each line is a connection backed by a file
-      in the archive. Click a dot to see its connections and sources. Drag to move dots, scroll or pinch to zoom.</p>
+    <p class="lead">Each shape is a person, organization, program, dataset or claim. Each line is a connection backed by a file
+      in the archive. A line means a document connects the two. It is not a finding of wrongdoing.</p>
     <div class="controls">
-      <label>Case <select id="m-case">${options([['', 'All cases'], ...s.cases.map((c) => [c.id, c.title]), [TABLES, 'The lobbying tables']], state.case)}</select></label>
+      <label>Case <select id="m-case">${options([...s.cases.map((c) => [c.id, c.title]), [ALL, 'All cases'], [TABLES, 'The lobbying tables']], state.case)}</select></label>
       <label>Find <input id="m-find" type="search" list="m-names" placeholder="A person, body, company…" autocomplete="off"></label>
       <datalist id="m-names">${g.nodes.map((n) => `<option value="${esc(n.label)}">`).join('')}</datalist>
       <button class="btn small secondary" id="m-list" aria-pressed="false">Show as a list</button>
@@ -52,7 +55,7 @@ export async function render(root, params) {
       <span><span class="line-sample" style="border-color:#d0d5dd"></span>Appears in case</span></div>
     <div class="map-layout">
       <div>
-        <div id="m-chart" class="chart" role="img" aria-label="Network diagram of connections. Use 'Show as a list' for a text version."></div>
+        ${figure('m-chart', { how: `Shapes and colours show the kind of item (key below the map). Bigger shapes have more connections. Only the ${LABELS} most connected are named: hover over a shape for its name, click it for its sources. Drag to move, scroll or pinch to zoom. “Show as a list” gives the same connections as a table.` })}
         <div id="m-table" hidden></div>
       </div>
       <aside class="side" id="m-side" aria-live="polite"></aside>
@@ -69,7 +72,7 @@ export async function render(root, params) {
 
   function compute() {
     let edges = g.edges.filter((e) => state.layers.has(edgeLayer(e)));
-    if (state.case) edges = edges.filter((e) => (edgeLayer(e).startsWith('lobbying') ? inScope(e.from) : inScope(e.from) && inScope(e.to)));
+    if (state.case !== ALL) edges = edges.filter((e) => (edgeLayer(e).startsWith('lobbying') ? inScope(e.from) : inScope(e.from) && inScope(e.to)));
     const ids = new Set(edges.flatMap((e) => [e.from, e.to]));
     return { edges, ids, nodes: [...ids].map((i) => byId[i]) };
   }
@@ -80,9 +83,12 @@ export async function render(root, params) {
     view.edges.forEach((e) => { deg[e.from] = (deg[e.from] || 0) + 1; deg[e.to] = (deg[e.to] || 0) + 1; });
     const pairSeen = {};
     const present = new Set(view.nodes.map((n) => n.type));
+    const named = new Set(Object.entries(deg).sort((a, b) => b[1] - a[1]).slice(0, LABELS).map(([id]) => id));
+    const scope = state.case === ALL ? 'All cases' : state.case === TABLES ? 'The lobbying tables' : idx.byId[state.case].title;
+    caption(root, 'm-chart', `${esc(scope)}: ${view.nodes.length} items and ${view.edges.length} connections${state.layers.size ? '' : '. Tick a layer above to draw connections'}.`);
     c.setOption({
       tooltip: { confine: true, formatter: (p) => (p.dataType === 'edge' ? esc(p.data.tip) : `<b>${esc(p.data.name)}</b><br>${esc(NODE_TYPES[p.data.type].label)}`) },
-      legend: [{ type: 'scroll', bottom: 4, left: 8, right: 8, data: TYPES.filter((t) => present.has(t)).map((t) => NODE_TYPES[t].label), textStyle: { fontSize: 11 } }],
+      legend: [{ type: 'scroll', bottom: 4, left: 8, right: 8, data: TYPES.filter((t) => present.has(t)).map((t) => ({ name: NODE_TYPES[t].label, icon: NODE_TYPES[t].symbol })), textStyle: { fontSize: 11 } }],
       animationDurationUpdate: 400,
       series: [{
         type: 'graph',
@@ -98,7 +104,7 @@ export async function render(root, params) {
           type: n.type,
           category: TYPES.indexOf(n.type),
           symbolSize: 7 + 3.2 * Math.sqrt(deg[n.id] || 1),
-          label: { show: ALWAYS_LABEL.has(n.type) || (deg[n.id] || 0) >= 10 },
+          label: { show: named.has(n.id) },
         })),
         links: view.edges.map((e) => {
           const key = [e.from, e.to].sort().join('|');
@@ -120,7 +126,8 @@ export async function render(root, params) {
         }),
         edgeSymbol: ['none', 'arrow'],
         edgeSymbolSize: 5,
-        force: { repulsion: 150, edgeLength: [30, 120], gravity: 0.07, friction: 0.25 },
+        // small views get more room, so the few labels shown do not sit on top of each other
+        force: view.nodes.length < 40 ? { repulsion: 700, edgeLength: [90, 180], gravity: 0.1, friction: 0.25 } : { repulsion: 150, edgeLength: [30, 120], gravity: 0.07, friction: 0.25 },
         label: { position: 'right', fontSize: 11, color: '#1c1f24' },
         labelLayout: { hideOverlap: true },
         emphasis: { focus: 'adjacency', lineStyle: { width: 2.5 }, label: { show: true } },
@@ -142,7 +149,7 @@ export async function render(root, params) {
     const top = Object.entries(deg).sort((a, b) => b[1] - a[1]).slice(0, 12);
     $('#m-side', root).innerHTML = `
       <h2 style="margin-top:0">How to use the map</h2>
-      <p>Click any dot to list its connections. Each connection shows the archive file it comes from, the page or slide, and a
+      <p>Click any shape to list its connections. Each connection shows the archive file it comes from, the page or slide, and a
         link to the original government or news source where there is one.</p>
       <p class="small muted">Showing ${view.nodes.length} items and ${view.edges.length} lines. Use the boxes above to switch
         layers on or off. The lobbying layer comes straight from the Lobbying Registry tables.</p>
@@ -194,8 +201,8 @@ export async function render(root, params) {
     const n = g.nodes.find((x) => x.label.toLowerCase() === q) || g.nodes.find((x) => x.label.toLowerCase().includes(q));
     if (!n) return;
     if (!view.ids.has(n.id)) {
-      state.case = '';
-      $('#m-case', root).value = '';
+      state.case = ALL;
+      $('#m-case', root).value = ALL;
       g.edges.filter((e) => e.from === n.id || e.to === n.id).forEach((e) => state.layers.add(edgeLayer(e)));
       $$layers().forEach((b) => { b.checked = state.layers.has(b.value); });
       state.node = n.id;
@@ -212,7 +219,10 @@ export async function render(root, params) {
     if (a) { ev.preventDefault(); find(byId[a.dataset.id].label); }
     if (ev.target.id === 'm-clear') { ev.preventDefault(); state.node = ''; setParams({ case: state.case, layers: [...state.layers].join(',') }); c.dispatchAction({ type: 'downplay', seriesIndex: 0 }); side(); }
   });
-  $('#m-case', root).addEventListener('change', (ev) => { state.case = ev.target.value; setParams({ case: state.case, node: state.node, layers: [...state.layers].join(',') }); draw(); });
+  $('#m-case', root).addEventListener('change', (ev) => {
+    state.case = ev.target.value;
+    if (state.case === TABLES) { LOBBY_LAYERS.forEach((k) => state.layers.add(k)); $$layers().forEach((b) => { b.checked = state.layers.has(b.value); }); }
+    setParams({ case: state.case, node: state.node, layers: [...state.layers].join(',') }); draw(); });
   $('#m-layers', root).addEventListener('change', () => { state.layers = new Set($$layers().filter((b) => b.checked).map((b) => b.value)); setParams({ case: state.case, node: state.node, layers: [...state.layers].join(',') }); draw(); });
   $('#m-find', root).addEventListener('change', (ev) => find(ev.target.value));
   $('#m-list', root).addEventListener('click', (ev) => {

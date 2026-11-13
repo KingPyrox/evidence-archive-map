@@ -1,6 +1,6 @@
 import { loadAll } from '../services/data.js';
 import { esc, int } from '../helpers/format.js';
-import { $, table, ext } from '../helpers/dom.js';
+import { $, table, ext, figure } from '../helpers/dom.js';
 import { chart } from '../helpers/chart.js';
 
 export const title = 'Survey check';
@@ -24,19 +24,23 @@ export async function render(root) {
     <div class="callout ok"><b>What the files show.</b> StatCan's published percentages come out exactly when you do what the
       article describes: count only people who used the Internet to find COVID-19 information, and apply the survey weights
       that StatCan's documentation says to use. The archive's spreadsheet counts raw answers from everyone, including the
-      ${int(skip.raw)} people who skipped the question, so its percentages are lower.</div>
+      ${int(skip.raw)} people who skipped the question, so most of its percentages are lower.</div>
 
     <h2>The question</h2>
     <blockquote>${esc(sv.question)}</blockquote>
     <p class="small">Variable FC_25 in Canadian Perspectives Survey Series 4 (CPSS4), collected July 20 to 26, 2020.</p>
 
     <h2>Three ways to count the same answers</h2>
-    <div class="panel"><div id="sv-chart" class="chart"></div></div>
+    ${figure('sv-chart', {
+      title: `StatCan's figures match the weighted count for ${answers.filter((r) => Math.round(r.weighted_pct) === r.published_pct).length} of ${answers.length} answers. The spreadsheet's way of counting gives a lower number for ${answers.filter((r) => r.raw_pct_all < r.published_pct).length} of them.`,
+      how: `Each group of bars is one answer. Blue is what StatCan published, green is this site's weighted count of the people who were asked, and orange is the archive spreadsheet's method: raw answers divided by all ${int(sv.records)} people.`,
+      src: ext(sv.zip_url, 'survey file (zip)'),
+    })}
     ${table([
       { label: 'Answer', value: (r) => r.label },
       { label: 'Raw answers (survey file)', num: true, value: (r) => int(r.raw) },
       { label: 'Archive spreadsheet tally', num: true, value: (r) => int(tallyOf(r)) },
-      { label: 'Raw as % of all 4,218', num: true, value: (r) => `${r.raw_pct_all}%` },
+      { label: `Raw as % of all ${int(sv.records)}`, num: true, value: (r) => `${r.raw_pct_all}%` },
       { label: 'Weighted % of those asked', num: true, value: (r) => (r.weighted_pct != null ? `${r.weighted_pct}%` : '—') },
       { label: 'StatCan published', num: true, value: (r) => (r.published_pct != null ? `${r.published_pct}%` : '—') },
     ], sv.rows.filter((r) => r.code !== '9').map((r) => (r.code === '6' ? { ...r, label: 'Valid skip', raw: r.raw } : r)))}
@@ -83,6 +87,7 @@ export async function render(root) {
     </ul>`;
 
   chart($('#sv-chart', root), {
+    aria: { enabled: true, decal: { show: true } },
     legend: { top: 0 },
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => `${v}%` },
     grid: { left: 10, right: 20, top: 40, bottom: 10, containLabel: true },
@@ -91,7 +96,7 @@ export async function render(root) {
     series: [
       { name: 'StatCan published', type: 'bar', data: answers.map((r) => r.published_pct), itemStyle: { color: '#1d4ed8' } },
       { name: 'Weighted, people asked (this site)', type: 'bar', data: answers.map((r) => r.weighted_pct), itemStyle: { color: '#12b76a' } },
-      { name: 'Raw count ÷ all 4,218 (spreadsheet method)', type: 'bar', data: answers.map((r) => r.raw_pct_all), itemStyle: { color: '#f79009' } },
+      { name: `Raw count ÷ all ${int(sv.records)} (spreadsheet method)`, type: 'bar', data: answers.map((r) => r.raw_pct_all), itemStyle: { color: '#f79009' } },
     ],
   });
 }
