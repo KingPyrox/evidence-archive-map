@@ -15,8 +15,9 @@ export async function render(root, params) {
 
   root.innerHTML = `
     <h1>Sources &amp; checks</h1>
-    <p class="lead">Every file in the archive, how many connections on the map cite it, and the original sources the archive
-      links to. Nothing on this site comes from anywhere else.</p>
+    <p class="lead">Every file in the archive, how many lines on the map use it, and the original sources the archive links
+      to. Everything on this site comes from these files. The one exception is Canada's population, used to show big
+      amounts as dollars for every person.</p>
 
     <h2>Archive files</h2>
     <div class="controls">
@@ -30,8 +31,8 @@ export async function render(root, params) {
     <div id="x-table"></div>
 
     <h2>All automatic checks</h2>
-    <p>The build script (<code>pipeline/build_data.py</code>) runs these every time. A “differs” result is a real difference
-      between two files in the archive, not an error in this site.</p>
+    <p>These run every time the site updates (<code>pipeline/build_data.py</code>). “Differs” means two files in the archive
+      disagree with each other. It is not a mistake on this site.</p>
     ${table([
       { label: 'Check', value: (c) => c.name },
       { label: 'Expected', num: true, value: (c) => (typeof c.expected === 'number' ? int(c.expected) : c.expected) },
@@ -49,7 +50,7 @@ export async function render(root, params) {
       { label: 'Case', value: (f) => f.caseTitle },
       { label: 'Size', num: true, value: (f) => bytes(f.size) },
       { label: 'Cited on the map', num: true, value: (f) => cited.get(f.path) || '' },
-    ], rows, { empty: 'No files match.' });
+    ], rows, { empty: 'No files match.', limit: 20 });
   }
 
   const byHost = new Map();

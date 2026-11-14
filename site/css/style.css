@@ -42,7 +42,7 @@ nav.main-nav { max-width: 1280px; margin: 0 auto; padding: 0 .8rem; display: fle
 nav.main-nav a { color: #d0d5dd; text-decoration: none; padding: .6rem .45rem; white-space: nowrap; border-bottom: 3px solid transparent; font-size: .93rem; }
 nav.main-nav a:hover { color: #fff; }
 nav.main-nav a.active { color: #fff; border-bottom-color: #f87171; }
-nav.main-nav .nav-group { color: #8b93a3; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; padding: .85rem .1rem 0 .6rem; margin-left: .2rem; border-left: 1px solid #343a46; white-space: nowrap; }
+nav.main-nav .nav-group { color: #8b93a3; font-size: .78rem; font-weight: 600; padding: .85rem .1rem 0 .6rem; margin-left: .2rem; border-left: 1px solid #343a46; white-space: nowrap; }
 
 main { max-width: 1280px; margin: 0 auto; padding: 1.4rem 1.2rem 3rem; }
 .site-footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
@@ -203,7 +203,7 @@ details summary { cursor: pointer; color: var(--link); }
 .og-trail:empty { display: none; }
 .og-scroll { padding: .6rem .7rem .8rem; }
 .og-cols { position: relative; height: 1.5rem; }
-.og-cols span { position: absolute; top: 0; font-size: .75rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.og-cols span { position: absolute; top: 0; font-size: .8rem; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .og { position: relative; }
 .og svg { position: absolute; left: 0; top: 0; pointer-events: none; }
 .og-b { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: .05rem;
@@ -225,3 +225,36 @@ details summary { cursor: pointer; color: var(--link); }
 .og-pick { border-top: 1px solid var(--line); margin-top: .6rem; padding-top: .6rem; }
 .og-pick h4 { margin: 0 0 .4rem; font-size: .95rem; }
 .og-pick .table-wrap { max-height: 22rem; overflow: auto; }
+
+/* Simple-first pieces: dotted words, square counts, per-person lines, guess box, "Change what's shown", "Show all" */
+.term { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: help;
+  text-decoration: underline dotted #1d4ed8; text-decoration-thickness: 2px; text-underline-offset: .2em; }
+.term:hover, .term[aria-expanded=true] { color: #1d4ed8; }
+#term-pop { position: absolute; z-index: 50; max-width: min(22rem, calc(100vw - 16px)); background: #14171c; color: #fff;
+  padding: .6rem .8rem; border-radius: 8px; font-size: .92rem; line-height: 1.45; box-shadow: 0 6px 20px rgba(0, 0, 0, .25); }
+.squares { display: inline-flex; flex-wrap: wrap; gap: 3px; max-width: 16rem; vertical-align: middle; margin: .2rem 0 .5rem; }
+.squares i { width: 13px; height: 13px; border: 1.5px solid #98a2b3; border-radius: 2px; background: #fff; }
+.squares i.on { background: var(--accent); border-color: var(--accent); }
+.squares.warn i.on { background: #b54708; border-color: #b54708; }
+.squares.ok i.on { background: var(--ok); border-color: var(--ok); }
+.pic-line { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .8rem; }
+.pic-line .squares { margin: 0; }
+.per { font-size: .92rem; color: #344054; background: #f2f4f7; border-radius: 6px; padding: .25rem .55rem; margin: 0 0 .6rem; }
+.money-card .per { margin: .25rem 0 .3rem; display: inline-block; }
+.guess { border-left: 4px solid #1d4ed8; }
+.guess h2 { margin-top: 0; }
+.guess-row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; }
+.guess-row input[type=range] { flex: 1 1 14rem; min-height: 28px; accent-color: #1d4ed8; }
+.guess-row output { font-weight: 700; font-variant-numeric: tabular-nums; display: inline-block; min-width: 3.2em; }
+.guess-result { margin-top: .9rem; }
+.g-bar { display: grid; grid-template-columns: 6rem minmax(0, 1fr) 3.5rem; align-items: center; gap: .6rem; margin: .35rem 0; }
+.g-bar b { font-variant-numeric: tabular-nums; }
+.g-track { display: block; }
+.g-track i { display: block; height: 22px; width: 0; border-radius: 4px; background: #98a2b3; transition: width .6s ease-out; }
+.g-bar.real .g-track i { background: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .g-track i { transition: none; } }
+.change { background: #f2f4f7; border: 1px solid var(--line); border-radius: var(--radius); padding: .55rem .9rem .1rem; margin: -.3rem 0 1rem; }
+.change-title { font-size: .9rem; margin: 0 0 .35rem; color: #344054; }
+.change .controls { margin-bottom: .5rem; }
+.show-all { margin: .6rem 0 1.2rem; }
+.nw { white-space: nowrap; }

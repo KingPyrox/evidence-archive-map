@@ -1,6 +1,6 @@
 import { loadAll } from '../services/data.js';
 import { esc, int } from '../helpers/format.js';
-import { $, table, ext, figure } from '../helpers/dom.js';
+import { $, table, ext, figure, term } from '../helpers/dom.js';
 import { chart } from '../helpers/chart.js';
 
 export const title = 'Survey check';
@@ -18,13 +18,13 @@ export async function render(root) {
 
   root.innerHTML = `
     <h1>Survey check: “The stats don't add up”</h1>
-    <p class="lead">The misinformation case says a Statistics Canada article's numbers do not match the survey behind it. The
-      archive includes the article, the raw survey file and StatCan's documentation, so the numbers can be checked directly.</p>
+    <p class="lead">The misinformation case says the numbers in a Statistics Canada (StatCan) article don't match the survey
+      behind them. The archive has the article, the survey file and StatCan's guide, so we can check.</p>
 
-    <div class="callout ok"><b>What the files show.</b> StatCan's published percentages come out exactly when you do what the
-      article describes: count only people who used the Internet to find COVID-19 information, and apply the survey weights
-      that StatCan's documentation says to use. The archive's spreadsheet counts raw answers from everyone, including the
-      ${int(skip.raw)} people who skipped the question, so most of its percentages are lower.</div>
+    <div class="callout ok"><b>What the files show: StatCan's numbers check out.</b> They come out exactly right when you
+      count the way the article says: only people who used the Internet to find COVID-19 news, with each answer
+      ${term('weighted', 'weighted')} as StatCan's guide says. The archive's spreadsheet counted everyone, including the
+      ${int(skip.raw)} people who were never asked the question. That is why most of its numbers are lower.</div>
 
     <h2>The question</h2>
     <blockquote>${esc(sv.question)}</blockquote>

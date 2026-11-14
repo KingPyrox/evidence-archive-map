@@ -1,11 +1,13 @@
 import { loadAll } from '../services/data.js';
 import { esc, date, month, monthRange, monthTick } from '../helpers/format.js';
-import { $, sourceHtml, options, setParams, ext, figure, caption } from '../helpers/dom.js';
+import { $, sourceHtml, options, setParams, ext, figure, caption, changeBox, more, showAll } from '../helpers/dom.js';
 import { chart, DECALS } from '../helpers/chart.js';
 import { caseIndex } from '../helpers/cases.js';
 import { TIMELINE_LAYERS } from '../enums/kinds.js';
 
 export const title = 'Timeline';
+
+const SHOW = 20; // entries listed before "Show all"
 
 export async function render(root, params) {
   const [s, tl] = await loadAll('summary', 'timeline');
@@ -22,17 +24,16 @@ export async function render(root, params) {
 
   root.innerHTML = `
     <h1>Timeline</h1>
-    <p class="lead">Everything in the archive that has a date: events in the documents, lobbying records, the videos and the
-      dates each case was published. Each entry links to its source.</p>
-    <div class="controls">
-      <label>Case <select id="t-case">${options([['', 'All cases'], ...s.cases.map((c) => [c.id, c.title])], state.case)}</select></label>
-      <label>From <select id="t-from">${options([['', 'The beginning'], ...years.map((y) => [`${y}-01-01`, y])], state.from)}</select></label>
-    </div>
-    <div class="controls" id="t-layers">${Object.entries(TIMELINE_LAYERS).map(([k, v]) => `<button class="chip" aria-pressed="${state.layers.has(k)}" data-layer="${k}"><span class="dot" style="background:${v.color}"></span>${esc(v.label)}</button>`).join('')}</div>
+    <p class="lead">Everything in the archive that has a date: events in the files, lobbying records, the videos, and the day
+      each case came out. Each entry links to where it came from.</p>
     ${figure('t-chart', {
-      how: 'Each bar is one month, and every month has a slot, so empty stretches are months with nothing dated. Colours and patterns show the kind of entry. Click a bar to jump to that month in the list below.',
+      how: 'Each bar is one month. Every month has a slot, so empty stretches are months with nothing dated. Colours and patterns show the kind of entry. Click a bar to jump to that month in the list below.',
       src: 'the dated files, tables and video list in the Evidence-Archive.', cls: 'short',
     })}
+    ${changeBox(`
+      <label>Case <select id="t-case">${options([['', 'All cases'], ...s.cases.map((c) => [c.id, c.title])], state.case)}</select></label>
+      <label>From <select id="t-from">${options([['', 'The beginning'], ...years.map((y) => [`${y}-01-01`, y])], state.from)}</select></label>
+      <span class="controls" id="t-layers">${Object.entries(TIMELINE_LAYERS).map(([k, v]) => `<button class="chip" aria-pressed="${state.layers.has(k)}" data-layer="${k}"><span class="dot" style="background:${v.color}"></span>${esc(v.label)}</button>`).join('')}</span>`)}
     <div id="t-list"></div>`;
 
   const c = chart($('#t-chart', root), {});
@@ -60,12 +61,16 @@ export async function render(root, params) {
       })),
     }, true);
     c.off('click');
-    c.on('click', (p) => document.getElementById(`m-${months[p.dataIndex]}`)?.scrollIntoView({ behavior: 'smooth' }));
+    c.on('click', (p) => {
+      $('#t-list [data-show-all]', root)?.click(); // the month may be past the first entries
+      document.getElementById(`m-${months[p.dataIndex]}`)?.scrollIntoView({ behavior: 'smooth' });
+    });
 
     const byMonth = new Map();
     rows.forEach((e) => { const m = e.date.slice(0, 7); if (!byMonth.has(m)) byMonth.set(m, []); byMonth.get(m).push(e); });
-    $('#t-list', root).innerHTML = rows.length ? [...byMonth.entries()].map(([m, es]) => `
-      <section class="tl-month" id="m-${m}"><h3>${esc(month(m))}</h3>
+    let before = 0; // entries in the months above, so whole months past the first SHOW entries start hidden
+    $('#t-list', root).innerHTML = rows.length ? `<div>${[...byMonth.entries()].map(([m, es]) => `
+      <section class="tl-month" id="m-${m}"${more((before += es.length) - es.length, SHOW)}><h3>${esc(month(m))}</h3>
         ${es.map((e) => `<div class="tl-item">
           <time datetime="${esc(e.date)}">${esc(date(e.date))}</time>
           <div>
@@ -75,7 +80,7 @@ export async function render(root, params) {
             ${e.url ? `<div class="src">${ext(e.url, 'Watch')}</div>` : ''}
             <div>${casesOf(e).map((cid) => `<a class="badge case" href="#/timeline?case=${encodeURIComponent(cid)}">${esc(idx.byId[cid].title)}</a>`).join('')}</div>
           </div></div>`).join('')}
-      </section>`).join('') : '<p class="muted">No entries match these filters.</p>';
+      </section>`).join('')}</div>${showAll(rows.length, before > SHOW ? SHOW : 0, 'entries')}` : '<p class="muted">No entries match these filters.</p>';
   }
 
   $('#t-case', root).addEventListener('change', (ev) => { state.case = ev.target.value; draw(); });

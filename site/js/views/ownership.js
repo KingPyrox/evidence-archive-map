@@ -1,6 +1,6 @@
 import { loadAll } from '../services/data.js';
-import { esc, int, fileName } from '../helpers/format.js';
-import { $, table, ext, setParams, figure } from '../helpers/dom.js';
+import { esc, int, fileName, nameCase } from '../helpers/format.js';
+import { $, table, ext, setParams, figure, term } from '../helpers/dom.js';
 import { chart } from '../helpers/chart.js';
 
 export const title = 'Who owns what';
@@ -17,7 +17,7 @@ const MAX_HITS = 40;
 const COL_W = 370; // px per level of the diagram; names longer than NAME_MAX are shortened to fit
 const NAME_MAX = 34;
 const ROW_H = 17; // px per company row
-const ROOT_W = 190; // room for "BROOKFIELD CORPORATION" left of the first dot
+const ROOT_W = 190; // room for "Brookfield Corporation" left of the first dot
 const TOP = 12;
 // Groups view: a block is one line tall plus extra height for each company in its group, so taller means more companies.
 const BIG_H = 200; // the biggest block on screen gets this much extra height
@@ -32,7 +32,9 @@ export async function render(root, params) {
   const st = o.stats;
   const parent = new Map();
   const all = [];
-  (function walk(n, p) { parent.set(n, p); all.push(n); n.children.forEach((c) => walk(c, n)); })(o.tree, null);
+  // The source table prints names in capitals; show them in normal case, which is quicker to read.
+  (function walk(n, p) { n.name = nameCase(n.name); parent.set(n, p); all.push(n); n.children.forEach((c) => walk(c, n)); })(o.tree, null);
+  o.outside_investors.forEach((n) => { n.name = nameCase(n.name); });
   const ids = new Map(all.map((n, i) => [n, i]));
   const pathOf = (n) => { const out = []; for (let x = n; x; x = parent.get(x)) out.unshift(x); return out; };
   const pct = (n) => (n.pct == null ? '' : ` (${n.pct}%)`);
@@ -51,14 +53,9 @@ export async function render(root, params) {
 
   root.innerHTML = `
     <h1>Who owns what: Brookfield Corporation</h1>
-    <p class="lead">The “Who Runs Canada” case has a 43-page table of Brookfield Corporation's published ownership structure
-      (reference year 2025). It lists every company in the group and the share its parent company holds.</p>
-    <div class="stats">
-      <div class="stat"><b>${int(st.links)}</b><span>ownership links below the root</span></div>
-      <div class="stat"><b>${int(st.distinct_entities)}</b><span>distinct company names</span></div>
-      <div class="stat"><b>${int(st.direct_children)}</b><span>companies held directly</span></div>
-      <div class="stat"><b>${deepest}</b><span>levels below Brookfield, at the deepest</span></div>
-    </div>
+    <p class="lead">Brookfield is a big company. It owns other companies, and they own more. A 43-page table in the archive
+      lists them all. It has ${int(st.distinct_entities)} company names and ${int(st.links)} ${term('subsidiary', 'ownership links')}, up to
+      ${deepest} levels down. Brookfield owns ${int(st.direct_children)} of them itself.</p>
     <div class="controls">
       <label>Find a company <input id="o-q" type="search" value="${esc(state.q)}" placeholder="e.g. Enercare, Brookfield Renewable"></label>
       <div class="seg" role="group" aria-label="Show the ownership tree as">
@@ -82,6 +79,12 @@ export async function render(root, params) {
       <div id="o-list" class="o-tree" hidden></div>
       <p class="fig-src">Source: ${src}</p>
     </figure>
+    <div class="stats quiet">
+      <div class="stat"><b>${int(st.links)}</b><span>ownership links under Brookfield</span></div>
+      <div class="stat"><b>${int(st.distinct_entities)}</b><span>different company names</span></div>
+      <div class="stat"><b>${int(st.direct_children)}</b><span>companies Brookfield owns directly</span></div>
+      <div class="stat"><b>${deepest}</b><span>levels down, at the deepest</span></div>
+    </div>
     <div class="grid cols-2">
       ${figure('o-levels', {
         title: `Most links sit ${widest - 1} level${widest === 2 ? '' : 's'} below Brookfield: ${int(st.by_level[widest])} of ${int(st.links)}.`,

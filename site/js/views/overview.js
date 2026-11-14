@@ -1,27 +1,30 @@
 import { loadAll, load } from '../services/data.js';
-import { esc, int, date, bytes, countWord, listWords, moneyShort, fileName } from '../helpers/format.js';
-import { ext } from '../helpers/dom.js';
+import { esc, int, date, countWord, listWords, moneyShort, fileName, perPerson } from '../helpers/format.js';
+import { $, ext, term, squares, sourcesLink } from '../helpers/dom.js';
 import { EDGE_KINDS } from '../enums/kinds.js';
+import { POPULATION } from '../enums/population.js';
 
 export const title = '';
 
 // Each finding is worked out from the data, so it stays true when the archive changes. If a finding's data is missing
-// or has changed shape, that finding is left out and the rest of the page still renders.
+// or has changed shape, that finding is left out and the rest of the page still renders. Text is HTML: data parts are
+// escaped, dotted words come from term().
 const FINDINGS = [
   ({ est }) => {
     const ri = est.recovery_index;
+    const n = ri.catalogue_missing.length;
     return {
-      num: `${ri.catalogue_missing.length} of ${est.rounds.length}`,
-      text: "rounds of federal Estimates in the archive have no open.canada.ca catalogue record, the archive's recovery index says.",
-      src: ext(ri.url, fileName(ri.file)), href: '#/spending', see: 'See the recovered Estimates',
+      num: `${n} of ${est.rounds.length}`, pic: squares(n, est.rounds.length, 'warn'),
+      text: `of the government's ${term('estimates', 'spending plans')} in the archive are not on Canada's ${term('catalogue', 'open data website')}. That is what the archive's notes say.`,
+      src: [{ url: ri.url, name: fileName(ri.file) }], href: '#/spending', see: 'See the spending plans',
     };
   },
   ({ est }) => {
     const top = est.transfers.reduce((a, t) => (t.moved > a.moved ? t : a));
     return {
-      num: moneyShort(top.moved),
-      text: `moved between federal departments in the ${top.key} Supplementary Estimates, the most of the ${est.transfers.length} rounds that include the transfers table.`,
-      src: ext(est.url, fileName(est.file)), href: `#/money?round=${encodeURIComponent(top.key)}`, see: 'See where it went',
+      num: moneyShort(top.moved), per: perPerson(top.moved),
+      text: `moved from one ${term('department', 'department')} to another in a single spending plan, ${esc(top.key)}. That is the most of the ${est.transfers.length} plans that list these ${term('transfer', 'transfers')}.`,
+      src: [{ url: est.url, name: fileName(est.file) }], href: `#/money?round=${encodeURIComponent(top.key)}`, see: 'See where it went',
     };
   },
   ({ g }) => {
@@ -29,11 +32,11 @@ const FINDINGS = [
     const grants = g.edges.filter((e) => e.from === 'org:ircc' && e.money_kind === 'grant');
     if (!grants.length) return null;
     const to = [...new Set(grants.map((e) => byId[e.to].label))];
-    const docs = [...new Map(grants.map((e) => [e.src.doc, e.src.github])).entries()];
+    const total = grants.reduce((a, e) => a + e.amount, 0);
     return {
-      num: moneyShort(grants.reduce((a, e) => a + e.amount, 0)),
-      text: `in IRCC grants to ${listWords(to)}, in ${countWord(grants.length, 'amended grant record').toLowerCase()} in the immigration case.`,
-      src: docs.map(([doc, url]) => ext(url, fileName(doc))).join(' '), href: '#/money', see: 'See the grants',
+      num: moneyShort(total), per: perPerson(total),
+      text: `in ${term('grant', 'grants')} from Canada's immigration department <span class="nw">(${term('ircc')})</span> to ${countWord(to.length).toLowerCase()} ${term('un-agency', 'UN agencies')}: ${esc(listWords(to))}. They are in ${countWord(grants.length, 'grant record').toLowerCase()} in the immigration case.`,
+      src: [...new Map(grants.map((e) => [e.src.github, { url: e.src.github, name: fileName(e.src.doc) }])).values()], href: '#/money', see: 'See the grants',
     };
   },
   ({ lob }) => {
@@ -42,30 +45,73 @@ const FINDINGS = [
     const [inst, count] = [...n.entries()].sort((a, b) => b[1] - a[1])[0];
     return {
       num: int(lob.records.length),
-      text: `Lobbying Registry records in ${countWord(lob.datasets.length, 'table').toLowerCase()}. The institution named most often is ${inst}, in ${count}.`,
-      src: lob.datasets.map((d) => ext(d.url, fileName(d.file))).join(' '), href: '#/lobbying', see: 'Explore the records',
+      text: `${term('lobbying')} records. Each is a time someone was paid to talk to the government. They talked to ${esc(inst)} the most: ${count} times.`,
+      src: lob.datasets.map((d) => ({ url: d.url, name: fileName(d.file) })), href: '#/lobbying', see: 'See the records',
     };
   },
   ({ own }) => {
     const st = own.stats;
     return {
       num: int(st.direct_children),
-      text: `companies are held directly by Brookfield Corporation, in a published structure of ${int(st.links)} ownership links up to ${Math.max(...Object.keys(st.by_level).map(Number)) - 1} levels deep.`,
-      src: ext(own.url, fileName(own.file)), href: '#/ownership', see: 'Search the ownership tree',
+      text: `companies belong to Brookfield itself. They own more companies, and those own more, up to ${Math.max(...Object.keys(st.by_level).map(Number)) - 1} levels down. That makes ${int(st.links)} ${term('subsidiary', 'ownership links')} in all.`,
+      src: [{ url: own.url, name: fileName(own.file) }], href: '#/ownership', see: 'See who owns what',
     };
   },
   ({ sv }) => {
     const answers = sv.rows.filter((r) => r.published_pct != null);
     const match = answers.filter((r) => Math.round(r.weighted_pct) === r.published_pct).length;
     return {
-      num: match === answers.length ? `All ${match}` : `${match} of ${answers.length}`,
-      text: "of StatCan's published survey percentages come out exactly when the raw survey file is weighted as StatCan's guide says. The archive's spreadsheet counts raw answers instead.",
-      src: ext(sv.zip_url, 'survey file (zip)'), href: '#/survey', see: 'See the check step by step',
+      num: match === answers.length ? `All ${match}` : `${match} of ${answers.length}`, pic: squares(match, answers.length, 'ok'),
+      text: "of the survey numbers in the Statistics Canada article check out. Count the survey file the way its guide says, and you get the same numbers. The archive's spreadsheet counted it a different way.",
+      src: [{ url: sv.zip_url, name: 'survey file (zip)' }], href: '#/survey', see: 'See the check step by step',
     };
   },
 ];
 
 const optional = (name) => load(name).catch(() => null);
+
+// "Guess first": readers who guess a number before they see it remember the data better (Kim, Reinecke & Hullman,
+// CHI 2017). The answer is the number of company names in the Brookfield ownership table.
+function guessBox(own) {
+  if (!own) return '';
+  return `<section class="panel guess" aria-labelledby="g-h">
+    <h2 id="g-h">Guess first</h2>
+    <p>Brookfield is a big company. It owns other companies, and they own more.
+      <b>How many company names are on Brookfield's list?</b></p>
+    <div class="guess-row">
+      <label for="g-range">Your guess: <output id="g-out" for="g-range">100</output></label>
+      <input id="g-range" type="range" min="0" max="2000" step="25" value="100">
+      <button type="button" class="btn" id="g-go">Check my guess</button>
+    </div>
+    <div id="g-result" class="guess-result" hidden aria-live="polite"></div>
+  </section>`;
+}
+
+function wireGuess(root, own) {
+  const range = $('#g-range', root);
+  if (!range) return;
+  const real = own.stats.distinct_entities;
+  const deep = Math.max(...Object.keys(own.stats.by_level).map(Number)) - 1;
+  range.addEventListener('input', () => { $('#g-out', root).textContent = int(range.value); });
+  $('#g-go', root).addEventListener('click', () => {
+    const guess = Number(range.value);
+    const top = Math.max(guess, real) * 1.08;
+    const gap = real - guess;
+    const verdict = Math.abs(gap) <= real * 0.05 ? 'Very close!' : gap > 0 ? `That is ${int(gap)} more than you guessed.` : `That is ${int(-gap)} fewer than you guessed.`;
+    const out = $('#g-result', root);
+    out.innerHTML = `
+      <div class="g-bar"><span>Your guess</span><span class="g-track"><i></i></span><b>${int(guess)}</b></div>
+      <div class="g-bar real"><span>The list</span><span class="g-track"><i></i></span><b>${int(real)}</b></div>
+      <p><b>${verdict}</b> Brookfield owns ${int(own.stats.direct_children)} of them itself. It owns the rest through other
+        companies, up to ${deep} levels down. <a href="#/ownership">See who owns what →</a></p>`;
+    // both bars share one scale, so their lengths compare
+    const [a, b] = out.querySelectorAll('.g-track i');
+    a.style.width = `${(guess / top) * 100}%`;
+    b.style.width = `${(real / top) * 100}%`;
+    out.hidden = false;
+    $('#g-go', root).textContent = 'Check again';
+  });
+}
 
 export async function render(root) {
   const [s, g] = await loadAll('summary', 'graph');
@@ -80,76 +126,79 @@ export async function render(root) {
   const freshCases = s.cases.filter((x) => fresh.cases.includes(x.id));
 
   root.innerHTML = `
-    <h1>Follow the documents.</h1>
-    <p class="lead">All of the data here comes from Vesper Digital's work. This site maps Vesper's
-      <a href="${esc(s.source_repo)}" target="_blank" rel="noopener">Evidence-Archive</a>:
-      ${countWord(s.cases.length).toLowerCase()} investigations and supporting tables covering federal spending, immigration, defence and AI drones,
-      lobbying, corporate ownership and a COVID-19 survey. It shows who connects to whom, where the money goes, and the exact
-      file behind every fact so you can check it yourself.</p>
+    <h1>Follow the money. Check every number yourself.</h1>
+    <p class="lead">Vesper Digital saved files, tables and videos about ${countWord(s.cases.length).toLowerCase()} cases.
+      This site turns them into simple charts. Every number links to the file it came from, so you can check it.</p>
 
-    <h2>What the documents show</h2>
-    <p class="muted small">Each number below is counted from the archive's files every time the site is rebuilt. Click through to see how.</p>
+    ${guessBox(own)}
+
+    <h2>What the files show</h2>
     <div class="findings">${found.map((f) => `<article class="finding">
       <b>${esc(f.num)}</b>
-      <p>${esc(f.text)}</p>
-      <p class="small"><a href="${f.href}">${esc(f.see)} →</a><br><span class="muted">Source:</span> ${f.src}</p>
+      ${f.pic || ''}
+      <p>${f.text}</p>
+      ${f.per ? `<p class="per">That is ${esc(f.per)}.</p>` : ''}
+      <p class="small"><a href="${f.href}">${esc(f.see)} →</a> <span class="muted">·</span> ${sourcesLink(f.src)}</p>
     </article>`).join('')}</div>
+    <p class="small muted">The site counts these numbers from the archive's files each time it updates.
+      ${found.some((f) => f.per) ? `“For every person” uses Canada's population on ${esc(POPULATION.asOf)} (${int(POPULATION.people)}), from ${ext(POPULATION.url, 'Statistics Canada')}.` : ''}</p>
     <div class="btn-row">
-      <a class="btn" href="#/map">Open the connection map</a>
+      <a class="btn" href="#/map">See who is connected</a>
       <a class="btn secondary" href="#/money">Follow the money</a>
-      <a class="btn secondary" href="#/timeline">Read the timeline</a>
+      <a class="btn secondary" href="#/timeline">See what happened when</a>
     </div>
 
     ${freshCases.length || fresh.lobbying_tables.length ? `
-    <h2>New in the archive, not mapped yet</h2>
+    <h2>New in the archive</h2>
     <div class="panel">
-      <p>The archive added these since the connection map was last checked by hand. Their files, dates and charts are
-        already on this site. Links between people and organizations are only drawn after someone reads the documents.</p>
+      <p>Vesper added these since someone last read the files to draw the map. Their files, dates and charts are already
+        on this site. Lines between people only go on the map after someone reads the files.</p>
       <ul>${freshCases.map((x) => `<li><b>${esc(x.title)}</b> · ${x.files.length} files · <a href="#/sources?case=${encodeURIComponent(x.id)}">Files</a></li>`).join('')}
         ${fresh.lobbying_tables.length ? `<li>${countWord(fresh.lobbying_tables.length, 'lobbying table')}, charted on <a href="#/lobbying">Lobbying</a></li>` : ''}</ul>
     </div>` : ''}
 
-    <h2>The cases</h2>
+    <h2>The ${countWord(s.cases.length).toLowerCase()} cases</h2>
     <div class="grid cols-2">${s.cases.map(caseCard).join('')}</div>
 
     <h2>How to read this site</h2>
     <div class="panel">
-      <p>Every connection is one of three kinds of evidence. The map draws each kind differently.</p>
+      <p><b>A line between two names means a file connects them.</b> It does not mean anyone did something wrong.</p>
+      <p>The map draws three kinds of lines:</p>
       <ul>${['data', 'stated', 'computed'].map((k) => `<li><span class="line-sample ${EDGE_KINDS[k].style}"></span><b>${esc(EDGE_KINDS[k].label)}.</b> ${esc(EDGE_KINDS[k].help)}</li>`).join('')}</ul>
-      <p>A line between two names means a document in the archive connects them. It is not a finding of wrongdoing.</p>
-      <p>Claims made in the archive (for example in video titles) are shown as <b>claims</b>, not facts. A claim links to the
-        documents that support or test it.</p>
-      <p class="muted small">Dates and amounts appear exactly as they do in the archive's documents.</p>
+      <p>When a video title makes a claim, this site shows it as a <b>claim</b>, not a fact. It links to the files that
+        support or test it.</p>
+      <p class="small muted">Tap a ${term('archive', 'dotted word')} to see what it means.</p>
     </div>
 
-    <h2>Automatic checks</h2>
+    <h2>Checked every time the site updates</h2>
     <div class="panel">
-      <p><span class="badge ok">${passed} of ${s.checks.length} passed</span> Each time the data is rebuilt, the build re-reads the archive
-        and checks that totals, counts and quoted figures agree with each other.</p>
-      ${failed.length ? `<p><b>Differences found in the archive's own files:</b></p><ul>${failed.map((f) => `<li>${esc(f.name)}: expected ${esc(JSON.stringify(f.expected))}, found ${esc(JSON.stringify(f.actual))}. <span class="muted">${esc(f.note || '')}</span></li>`).join('')}</ul>` : ''}
-      <a href="#/sources">See every check and source file →</a>
+      <p>${squares(passed, s.checks.length, 'ok')}</p>
+      <p><b>${passed} of ${s.checks.length} checks passed.</b> Each time the site updates, it reads the archive again and
+        checks that its totals and counts agree with each other.</p>
+      ${failed.length ? `<p>Where the archive's own files disagree:</p><ul>${failed.map((f) => `<li>${esc(f.name)}: expected ${esc(JSON.stringify(f.expected))}, found ${esc(JSON.stringify(f.actual))}. <span class="muted">${esc(f.note || '')}</span></li>`).join('')}</ul>` : ''}
+      <a href="#/sources">See every check and file →</a>
     </div>
 
-    <h2>What this site is built from</h2>
+    <h2>What this site reads</h2>
     <div class="stats quiet">
       <div class="stat"><b>${int(c.files)}</b><span>files in the archive</span></div>
-      <div class="stat"><b>${int(c.nodes)}</b><span>people, bodies, programs and datasets</span></div>
-      <div class="stat"><b>${int(evidenceEdges)}</b><span>sourced evidence links</span></div>
+      <div class="stat"><b>${int(c.nodes)}</b><span>people, groups, programs and data tables</span></div>
+      <div class="stat"><b>${int(evidenceEdges)}</b><span>connections, each with a source</span></div>
       <div class="stat"><b>${int(c.lobbying_records)}</b><span>lobbying records</span></div>
       <div class="stat"><b>${int(c.ownership_links)}</b><span>Brookfield ownership links</span></div>
-      <div class="stat"><b>${int(c.estimate_rounds)}</b><span>rounds of federal Estimates recovered</span></div>
-      <div class="stat"><b>${int(c.external_links)}</b><span>original-source links</span></div>
+      <div class="stat"><b>${int(c.estimate_rounds)}</b><span>government spending plans</span></div>
+      <div class="stat"><b>${int(c.external_links)}</b><span>links to the original sources</span></div>
     </div>`;
+  wireGuess(root, own);
 }
 
 function caseCard(c) {
-  const size = c.files.reduce((a, f) => a + f.size, 0);
   const folder = `https://github.com/Vesper-Digital/Evidence-Archive/tree/main/${encodeURIComponent(c.folder)}`;
   return `<article class="panel case-card">
-    <h3>${esc(c.title)}${c.auto ? ' <span class="badge">New: not mapped yet</span>' : ''}</h3>
-    <div class="meta">${c.date ? `Published in the archive ${esc(date(c.date))} · ` : ''}${c.files.length} files · ${bytes(size)}</div>
+    <h3>${esc(c.title)}${c.auto ? ' <span class="badge">New: not on the map yet</span>' : ''}</h3>
+    <div class="meta">${c.date ? `Added ${esc(date(c.date))} · ` : ''}${c.files.length} files</div>
     <p>${esc(c.summary)}</p>
-    ${c.auto ? '' : `<p class="small muted">Video: “${esc(c.headline)}”</p>`}
+    ${c.auto ? '' : `<p class="small muted">Video title: “${esc(c.headline)}”</p>`}
     <div class="btn-row">
       <a class="btn small" href="#/map?case=${encodeURIComponent(c.id)}">Map</a>
       <a class="btn small secondary" href="#/timeline?case=${encodeURIComponent(c.id)}">Timeline</a>

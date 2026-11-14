@@ -1,5 +1,5 @@
 import { loadAll } from '../services/data.js';
-import { esc, int, fileName } from '../helpers/format.js';
+import { esc, int, fileName, nameCase } from '../helpers/format.js';
 import { $, setParams } from '../helpers/dom.js';
 import { NODE_TYPES } from '../enums/kinds.js';
 
@@ -12,10 +12,10 @@ function index({ g, est, own, lob, src }) {
   const items = [];
   const add = (group, name, note, href) => items.push({ group, name, note, href, key: name.toLowerCase() });
   g.nodes.forEach((n) => add('On the connection map', n.label, NODE_TYPES[n.type]?.label || '', `#/map?case=all&node=${encodeURIComponent(n.id)}`));
-  Object.keys(est.orgs).forEach((o) => add('Federal departments and agencies', o, 'Budget in every Estimates round', `#/spending?org=${encodeURIComponent(o)}`));
+  Object.keys(est.orgs).forEach((o) => add('Federal departments and agencies', o, 'Budget in every spending plan', `#/spending?org=${encodeURIComponent(o)}`));
   [...new Set(lob.records.map((r) => r.client))].forEach((c) => add('Lobbying clients', c, 'Companies that registered lobbying', `#/lobbying?client=${encodeURIComponent(c)}`));
   [...new Set(lob.records.flatMap((r) => r.institutions))].forEach((i) => add('Offices that were lobbied', i, 'Federal institutions named in lobbying records', `#/lobbying?inst=${encodeURIComponent(i)}`));
-  [...new Map(own.flat.map((n) => [n.name, n])).values()].forEach((n) => add('Companies in the Brookfield group', n.name, n.level === 1 ? 'Top of the group' : `${n.level - 1} level${n.level === 2 ? '' : 's'} below Brookfield`, `#/ownership?q=${encodeURIComponent(n.name)}`));
+  [...new Map(own.flat.map((n) => [nameCase(n.name), n])).entries()].forEach(([name, n]) => add('Companies in the Brookfield group', name, n.level === 1 ? 'Top of the group' : `${n.level - 1} level${n.level === 2 ? '' : 's'} below Brookfield`, `#/ownership?q=${encodeURIComponent(name)}`));
   src.files.forEach((f) => add('Archive files', fileName(f.path), f.path, `#/sources?q=${encodeURIComponent(fileName(f.path))}`));
   return items;
 }

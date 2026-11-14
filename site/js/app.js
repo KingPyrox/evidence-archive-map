@@ -1,4 +1,5 @@
 import { esc } from './helpers/format.js';
+import { GLOSSARY } from './enums/glossary.js';
 import { disposeAll } from './helpers/chart.js';
 import { load } from './services/data.js';
 import * as overview from './views/overview.js';
@@ -50,3 +51,46 @@ async function footer() {
 window.addEventListener('hashchange', route);
 route();
 footer().catch(() => {});
+
+// Dotted words (helpers/dom.js term()) show their meaning in one shared bubble under the word.
+const pop = document.createElement('div');
+pop.id = 'term-pop';
+pop.setAttribute('role', 'tooltip');
+pop.hidden = true;
+document.body.append(pop);
+let shown = null;
+function showTerm(b) {
+  const g = GLOSSARY[b.dataset.term];
+  if (!g) return;
+  pop.innerHTML = `<b>${esc(g.word)}:</b> ${esc(g.means)}`;
+  pop.hidden = false;
+  const r = b.getBoundingClientRect();
+  const left = Math.min(Math.max(8, r.left + window.scrollX), window.scrollX + document.documentElement.clientWidth - pop.offsetWidth - 8);
+  pop.style.left = `${left}px`;
+  pop.style.top = `${r.bottom + window.scrollY + 6}px`;
+  b.setAttribute('aria-describedby', 'term-pop');
+  b.setAttribute('aria-expanded', 'true');
+  shown = b;
+}
+function hideTerm() {
+  if (!shown) return;
+  pop.hidden = true;
+  shown.removeAttribute('aria-describedby');
+  shown.setAttribute('aria-expanded', 'false');
+  shown = null;
+}
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('.term');
+  if (b) { if (b === shown) hideTerm(); else showTerm(b); return; }
+  if (!ev.target.closest('#term-pop')) hideTerm();
+  // "Show all" reveals the rows hidden in the list just before it (helpers/dom.js showAll()).
+  const all = ev.target.closest('[data-show-all]');
+  if (all) {
+    all.previousElementSibling.querySelectorAll('[data-more]').forEach((x) => { x.hidden = false; x.removeAttribute('data-more'); });
+    all.remove();
+  }
+});
+document.addEventListener('focusin', (ev) => { const b = ev.target.closest?.('.term'); if (b) showTerm(b); else hideTerm(); });
+document.addEventListener('mouseover', (ev) => { const b = ev.target.closest?.('.term'); if (b && b !== shown) showTerm(b); });
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') hideTerm(); });
+window.addEventListener('hashchange', hideTerm);

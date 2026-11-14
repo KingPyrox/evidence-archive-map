@@ -1,6 +1,6 @@
 import { loadAll } from '../services/data.js';
 import { esc, int, money, date, month, countWord, listWords, fileName, monthRange, monthTick } from '../helpers/format.js';
-import { $, options, table, setParams, ext, figure, caption } from '../helpers/dom.js';
+import { $, options, table, setParams, ext, figure, caption, term, changeBox } from '../helpers/dom.js';
 import { chart, DECALS } from '../helpers/chart.js';
 import { DATASET_COLORS, DATASET_PALETTE } from '../enums/kinds.js';
 
@@ -39,34 +39,36 @@ export async function render(root, params) {
   const multi = lob.datasets.length > 1;
 
   root.innerHTML = `
-    <h1>Lobbying records</h1>
-    <p class="lead">${countWord(lob.datasets.length, 'table')} in the archive list ${int(recs.length)} federal Lobbying Registry records, found by
-      searching the registry for ${esc(listWords(lob.datasets.map((d) => NAMES[d.id])))}. Each record says who lobbied, which government
-      institutions they contacted, and what about. Every row links to the registry.</p>
-    <p class="small muted">A lobbying record shows that a meeting or contact was registered. It does not show what was decided.</p>
-    <div class="grid cols-2">${lob.datasets.map((d) => `
-      <div class="panel"><h3><span class="dot" style="background:${COLORS[d.id]}"></span>${esc(NAMES[d.id])}</h3>
-        <p class="small">Search term <code>${esc(d.query)}</code> · ${esc(d.date_range)}<br>
-        ${int(d.records)} records · ${int(d.distinct_institutions)} institutions · ${ext(d.url, 'archive file')}</p></div>`).join('')}
-    </div>
-    <div class="controls">
-      <label>Table <select id="l-ds">${options([['', multi ? `All ${countWord(lob.datasets.length).toLowerCase()} tables` : 'The table'], ...lob.datasets.map((d) => [d.id, NAMES[d.id]])], state.ds)}</select></label>
-      <label>Client <select id="l-client">${options([['', 'Any client'], ...clients.map((c) => [c, c])], state.client)}</select></label>
-      <label>Institution <select id="l-inst">${options([['', 'Any institution'], ...insts.map((c) => [c, c])], state.inst)}</select></label>
-      <label>Search <input id="l-q" type="search" value="${esc(state.q)}" placeholder="Words in the description, lobbyist, firm…"></label>
-    </div>
+    <h1>Lobbying: who talked to the government</h1>
+    <p class="lead">${term('lobbying', 'Lobbying')} means being paid to talk to government officials to try to change what
+      they decide. The archive has ${countWord(lob.datasets.length, 'list').toLowerCase()} of lobbying records, with ${int(recs.length)} records
+      in all. Each record says who lobbied, which part of the government they talked to, and what about.</p>
+    <p class="small muted">A record shows that a meeting or contact happened. It does not show what was decided.</p>
     <div class="grid cols-2">
       ${figure('l-inst-chart', {
-        how: `Each bar counts the records that name the institution. One record can name several institutions.${multi ? ' Colours and patterns show which table a record comes from.' : ''} Click a bar to show only its records.`,
+        how: `Each bar counts the records that name that part of the government. One record can name several.${multi ? ' Colours and patterns show which list a record comes from.' : ''} Click a bar to show only its records.`,
         src, cls: 'tall',
       })}
       <div>
         ${figure('l-month', { how: 'Each bar is one month. Every month has a slot, so gaps are months with no records.', src, cls: 'short' })}
-        ${figure('l-clients', { how: 'Click a bar to show only that client.', src, cls: 'short' })}
+        ${figure('l-clients', { how: 'Each bar is one company or group that paid for lobbying. Click a bar to show only that one.', src, cls: 'short' })}
       </div>
     </div>
+    ${changeBox(`
+      <label>List <select id="l-ds">${options([['', multi ? `All ${countWord(lob.datasets.length).toLowerCase()} lists` : 'The list'], ...lob.datasets.map((d) => [d.id, NAMES[d.id]])], state.ds)}</select></label>
+      <label>Paid for by <select id="l-client">${options([['', 'Anyone'], ...clients.map((c) => [c, c])], state.client)}</select></label>
+      <label>Talked to <select id="l-inst">${options([['', 'Any part of the government'], ...insts.map((c) => [c, c])], state.inst)}</select></label>
+      <label>Search <input id="l-q" type="search" value="${esc(state.q)}" placeholder="Words in the subject, lobbyist, firm…"></label>`)}
     <h2 id="l-count"></h2>
-    <div id="l-table"></div>`;
+    <div id="l-table"></div>
+
+    <h2>Where these records come from</h2>
+    <p>Vesper searched the federal ${term('registry')} and saved the results as ${countWord(lob.datasets.length, 'list').toLowerCase()}.</p>
+    <div class="grid cols-2">${lob.datasets.map((d) => `
+      <div class="panel"><h3><span class="dot" style="background:${COLORS[d.id]}"></span>${esc(NAMES[d.id])}</h3>
+        <p class="small">Searched for <code>${esc(d.query)}</code> · ${esc(d.date_range)}<br>
+        ${int(d.records)} records · ${int(d.distinct_institutions)} parts of the government · ${ext(d.url, 'archive file')}</p></div>`).join('')}
+    </div>`;
 
   const instChart = chart($('#l-inst-chart', root), {});
   const monthChart = chart($('#l-month', root), {});
@@ -140,14 +142,14 @@ export async function render(root, params) {
     $('#l-count', root).textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
     $('#l-table', root).innerHTML = table([
       { label: 'Date', value: (r) => date(r.date) },
-      { label: 'Client', html: (r) => `<b>${esc(r.client)}</b><br><span class="badge" style="background:${COLORS[r.dataset]}22">${esc(NAMES[r.dataset])}</span> <span class="small muted">${esc(r.type)}</span>` },
-      { label: 'Institutions', html: (r) => `<span class="small">${r.institutions.map(esc).join('<br>')}</span>` },
+      { label: 'Paid for by', html: (r) => `<b>${esc(r.client)}</b><br><span class="badge" style="background:${COLORS[r.dataset]}22">${esc(NAMES[r.dataset])}</span> <span class="small muted">${esc(r.type)}</span>` },
+      { label: 'Talked to', html: (r) => `<span class="small">${r.institutions.map(esc).join('<br>')}</span>` },
       { label: 'Office holders', html: (r) => `<span class="small">${r.holders.map(esc).join('<br>') || '—'}</span>` },
       { label: 'Subject', html: (r) => `<span class="small">${r.description ? esc(r.description) : '<span class="muted">not given in this table</span>'}</span>` },
       { label: 'Lobbyist / firm', html: (r) => `<span class="small">${esc(r.registrant || '')}${r.firm ? `<br><i>${esc(r.firm)}</i>` : ''}</span>` },
-      { label: 'Gov. funding reported', num: true, value: (r) => (r.funding ? money(r.funding) : '—') },
+      { label: 'Government money reported', num: true, value: (r) => (r.funding ? money(r.funding) : '—') },
       { label: 'Registry', html: (r) => (r.url ? ext(r.url, r.comm_id || r.reg_id || 'open') : esc(r.reg_id || '')) },
-    ], rows, { empty: none });
+    ], rows, { empty: none, limit: 20 });
   }
 
   $('#l-ds', root).addEventListener('change', (ev) => { state.ds = ev.target.value; draw(); });

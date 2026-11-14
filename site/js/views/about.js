@@ -3,6 +3,7 @@ import { esc, int } from '../helpers/format.js';
 import { ext } from '../helpers/dom.js';
 import { EDGE_KINDS } from '../enums/kinds.js';
 import { GLOSSARY, GLOSSARY_SOURCE } from '../enums/glossary.js';
+import { POPULATION } from '../enums/population.js';
 
 export const title = 'About';
 
@@ -30,9 +31,10 @@ export async function render(root) {
     </section>
 
     <h2>Words used on this site</h2>
-    <p>Government budget records use a lot of special words. Here they are in plain language.</p>
+    <p>Government records use a lot of special words. Here they are in plain language. On other pages, tap a dotted word
+      to see its meaning.</p>
     <dl class="glossary">${Object.values(GLOSSARY).map((g) => `<div><dt>${esc(g.word)}</dt><dd>${esc(g.means)}</dd></div>`).join('')}</dl>
-    <p class="small muted">The Estimates words follow the ${ext(GLOSSARY_SOURCE, 'Treasury Board of Canada Secretariat')}.</p>
+    <p class="small muted">The spending-plan words follow the ${ext(GLOSSARY_SOURCE, 'Treasury Board of Canada Secretariat')}.</p>
 
     <h2>Kinds of evidence</h2>
     <ul>${['data', 'stated', 'computed'].map((k) => `<li><b>${esc(EDGE_KINDS[k].label)}:</b> ${esc(EDGE_KINDS[k].help)}</li>`).join('')}</ul>
@@ -56,6 +58,9 @@ export async function render(root) {
       <li>In the Estimates transfer tables, when one transfer has several givers and several receivers, the table does not
         say who paid whom. Those amounts are split in proportion and marked ≈.</li>
       <li>Hand-transcribed slide text can contain typing errors. Each fact links to the slide so you can check it.</li>
+      <li>One number does not come from the archive: Canada's population on ${esc(POPULATION.asOf)}
+        (${int(POPULATION.people)}, ${ext(POPULATION.url, 'Statistics Canada')}). It is only used to show big amounts as
+        dollars for every person.</li>
     </ul>
 
     <h2>Found a mistake?</h2>

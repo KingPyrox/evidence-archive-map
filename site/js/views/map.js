@@ -1,6 +1,6 @@
 import { loadAll } from '../services/data.js';
 import { esc } from '../helpers/format.js';
-import { $, sourceHtml, options, setParams, table, figure, caption } from '../helpers/dom.js';
+import { $, sourceHtml, options, setParams, table, figure, caption, changeBox } from '../helpers/dom.js';
 import { chart } from '../helpers/chart.js';
 import { caseIndex, nodeCases } from '../helpers/cases.js';
 import { NODE_TYPES, EDGE_KINDS, LAYERS } from '../enums/kinds.js';
@@ -41,25 +41,25 @@ export async function render(root, params) {
 
   root.innerHTML = `
     <h1>Connection map</h1>
-    <p class="lead">Each shape is a person, organization, program, dataset or claim. Each line is a connection backed by a file
-      in the archive. A line means a document connects the two. It is not a finding of wrongdoing.</p>
+    <p class="lead">Each shape is a person, group, program, data table or claim. Each line joins two of them because a file in
+      the archive connects them. <b>A line does not mean anyone did something wrong.</b></p>
     <div class="controls">
-      <label>Case <select id="m-case">${options([...s.cases.map((c) => [c.id, c.title]), [ALL, 'All cases'], [TABLES, 'The lobbying tables']], state.case)}</select></label>
-      <label>Find <input id="m-find" type="search" list="m-names" placeholder="A person, body, company…" autocomplete="off"></label>
+      <label>Case <select id="m-case">${options([...s.cases.map((c) => [c.id, c.title]), [ALL, 'All cases'], [TABLES, 'The lobbying lists']], state.case)}</select></label>
+      <label>Find <input id="m-find" type="search" list="m-names" placeholder="A person, group, company…" autocomplete="off"></label>
       <datalist id="m-names">${g.nodes.map((n) => `<option value="${esc(n.label)}">`).join('')}</datalist>
-      <button class="btn small secondary" id="m-list" aria-pressed="false">Show as a list</button>
     </div>
-    <div class="controls" id="m-layers">${Object.entries(LAYERS).map(([k, v]) => `<label><input type="checkbox" value="${k}" ${state.layers.has(k) ? 'checked' : ''}> ${esc(v)}</label>`).join('')}</div>
-    <div class="legend-list">${['data', 'stated', 'computed'].map((k) => `<span title="${esc(EDGE_KINDS[k].help)}"><span class="line-sample ${EDGE_KINDS[k].style}"></span>${esc(EDGE_KINDS[k].label)}</span>`).join('')}
-      <span><span class="line-sample" style="border-color:#f5b971"></span>Lobbying record</span>
-      <span><span class="line-sample" style="border-color:#d0d5dd"></span>Appears in case</span></div>
     <div class="map-layout">
       <div>
-        ${figure('m-chart', { how: `Shapes and colours show the kind of item (key below the map). Bigger shapes have more connections. Only the ${LABELS} most connected are named: hover over a shape for its name, click it for its sources. Drag to move, scroll or pinch to zoom. “Show as a list” gives the same connections as a table.` })}
+        ${figure('m-chart', { how: `Shapes and colours show the kind of item (key below the map). Bigger shapes have more connections. Only the ${LABELS} most connected have names: point at a shape for its name, click it for its sources. Drag to move, scroll or pinch to zoom.` })}
+        <div class="legend-list">${['data', 'stated', 'computed'].map((k) => `<span title="${esc(EDGE_KINDS[k].help)}"><span class="line-sample ${EDGE_KINDS[k].style}"></span>${esc(EDGE_KINDS[k].label)}</span>`).join('')}
+          <span><span class="line-sample" style="border-color:#f5b971"></span>Lobbying record</span>
+          <span><span class="line-sample" style="border-color:#d0d5dd"></span>Appears in case</span></div>
         <div id="m-table" hidden></div>
       </div>
       <aside class="side" id="m-side" aria-live="polite"></aside>
-    </div>`;
+    </div>
+    ${changeBox(`<span class="controls" id="m-layers">${Object.entries(LAYERS).map(([k, v]) => `<label><input type="checkbox" value="${k}" ${state.layers.has(k) ? 'checked' : ''}> ${esc(v)}</label>`).join('')}</span>
+      <button class="btn small secondary" id="m-list" aria-pressed="false">Show as a list</button>`)}`;
 
   const c = chart($('#m-chart', root), {});
   let view = { nodes: [], edges: [], ids: new Set() };
@@ -85,7 +85,7 @@ export async function render(root, params) {
     const present = new Set(view.nodes.map((n) => n.type));
     const named = new Set(Object.entries(deg).sort((a, b) => b[1] - a[1]).slice(0, LABELS).map(([id]) => id));
     const scope = state.case === ALL ? 'All cases' : state.case === TABLES ? 'The lobbying tables' : idx.byId[state.case].title;
-    caption(root, 'm-chart', `${esc(scope)}: ${view.nodes.length} items and ${view.edges.length} connections${state.layers.size ? '' : '. Tick a layer above to draw connections'}.`);
+    caption(root, 'm-chart', `${esc(scope)}: ${view.nodes.length} items and ${view.edges.length} connections${state.layers.size ? '' : '. Tick a layer under the map to draw connections'}.`);
     c.setOption({
       tooltip: { confine: true, formatter: (p) => (p.dataType === 'edge' ? esc(p.data.tip) : `<b>${esc(p.data.name)}</b><br>${esc(NODE_TYPES[p.data.type].label)}`) },
       legend: [{ type: 'scroll', bottom: 4, left: 8, right: 8, data: TYPES.filter((t) => present.has(t)).map((t) => ({ name: NODE_TYPES[t].label, icon: NODE_TYPES[t].symbol })), textStyle: { fontSize: 11 } }],
