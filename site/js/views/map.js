@@ -92,26 +92,30 @@ export async function render(root, params) {
     let keyRows = 1;
     let x = 0;
     keyTypes.forEach((t) => { const w = 42 + textWidth(NODE_TYPES[t].label); if (x && x + w > room) { keyRows += 1; x = 0; } x += w; });
+    const nodes = view.nodes.map((n) => ({
+      id: n.id,
+      name: n.label,
+      type: n.type,
+      category: TYPES.indexOf(n.type),
+      symbolSize: 7 + 3.2 * Math.sqrt(deg[n.id] || 1),
+      label: { show: named.has(n.id) },
+    }));
     c.setOption({
       tooltip: { confine: true, formatter: (p) => (p.dataType === 'edge' ? esc(p.data.tip) : `<b>${esc(p.data.name)}</b><br>${esc(NODE_TYPES[p.data.type].label)}`) },
       legend: [{ type: 'plain', bottom: 4, left: 8, right: 8, itemGap: 10, data: keyTypes.map((t) => ({ name: NODE_TYPES[t].label, icon: NODE_TYPES[t].symbol })), textStyle: { fontSize: 12 } }],
-      animationDurationUpdate: 400,
+      // no slide between views: names are placed once shapes stop, and a moving shape would carry its name off the edge
+      animationDurationUpdate: 0,
       series: [{
         type: 'graph',
         layout: 'force',
         top: 20,
         bottom: 16 + keyRows * 22,
+        left: 12,
+        right: 12,
         roam: true,
         draggable: true,
         categories: TYPES.map((t) => ({ name: NODE_TYPES[t].label, itemStyle: { color: NODE_TYPES[t].color }, symbol: NODE_TYPES[t].symbol })),
-        data: view.nodes.map((n) => ({
-          id: n.id,
-          name: n.label,
-          type: n.type,
-          category: TYPES.indexOf(n.type),
-          symbolSize: 7 + 3.2 * Math.sqrt(deg[n.id] || 1),
-          label: { show: named.has(n.id) },
-        })),
+        data: nodes,
         links: view.edges.map((e) => {
           const key = [e.from, e.to].sort().join('|');
           const i = (pairSeen[key] = (pairSeen[key] ?? -1) + 1);
@@ -134,7 +138,7 @@ export async function render(root, params) {
         edgeSymbol: ['none', 'arrow'],
         edgeSymbolSize: 5,
         // small views get more room, so the few labels shown do not sit on top of each other
-        force: view.nodes.length < 40 ? { repulsion: 700, edgeLength: [90, 180], gravity: 0.1, friction: 0.25 } : { repulsion: 150, edgeLength: [30, 120], gravity: 0.07, friction: 0.25 },
+        force: { layoutAnimation: false, ...(nodes.length < 40 ? { repulsion: 700, edgeLength: [90, 180], gravity: 0.1, friction: 0.25 } : { repulsion: 150, edgeLength: [30, 120], gravity: 0.07, friction: 0.25 }) },
         label: { position: 'right', color: '#1c1f24', width: Math.min(150, Math.round(room / 2.5)), overflow: 'break', lineHeight: 15 },
         // a name that would run off an edge moves back inside: to the left of its shape if there is room, else along the edge
         labelLayout: (p) => {
@@ -150,6 +154,13 @@ export async function render(root, params) {
         emphasis: { focus: 'adjacency', lineStyle: { width: 2.5 }, label: { show: true } },
       }],
     }, true);
+    // The force layout can push shapes past the edges of a phone screen. Keep the spot each shape settled in and let the
+    // chart fit them all inside its box (a fixed layout is scaled to fit), so every shape and name stays on screen.
+    const settled = c.getModel().getSeriesByIndex(0)?.getData();
+    const at = nodes.map((_, i) => settled?.getItemLayout(i));
+    if (nodes.length && at.every((p) => p && Number.isFinite(p[0]) && Number.isFinite(p[1]))) {
+      c.setOption({ series: [{ layout: 'none', data: nodes.map((n, i) => ({ ...n, x: at[i][0], y: at[i][1] })) }] });
+    }
     $('#m-table', root).innerHTML = table([
       { label: 'From', value: (e) => byId[e.from].label },
       { label: 'Connection', value: (e) => e.label },
