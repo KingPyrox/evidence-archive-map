@@ -1,7 +1,7 @@
 import { loadAll } from '../services/data.js';
-import { esc, int, money, date, month, countWord, listWords, fileName, monthRange, monthTick } from '../helpers/format.js';
+import { esc, int, money, date, month, countWord, listWords, fileName, monthRange, monthTick, nameCase } from '../helpers/format.js';
 import { $, options, table, setParams, ext, figure, caption, term, changeBox } from '../helpers/dom.js';
-import { chart, DECALS } from '../helpers/chart.js';
+import { chart, namedBars, DECALS } from '../helpers/chart.js';
 import { DATASET_COLORS, DATASET_PALETTE } from '../enums/kinds.js';
 
 export const title = 'Lobbying';
@@ -10,15 +10,20 @@ export const title = 'Lobbying';
 const NAMES = {};
 const COLORS = {};
 
-// Axis label for an institution: its name when short, else the registry's own abbreviation, e.g. "(ISED)".
-// The tooltip always shows the full name.
-function instLabel(s) {
-  const name = s.replace(/\s*\([^)]*\)$/, '');
-  const code = (s.match(/\(([A-Za-z]+)\)$/) || [])[1];
-  return name.length <= 32 ? name : code || `${name.slice(0, 31)}…`;
-}
+const stackTip = (cats) => (ps) => `<b>${esc(cats[ps[0].dataIndex])}</b><br>${ps.filter((p) => p.value && p.seriesId !== '_total').map((p) => `${p.marker}${esc(p.seriesName)}: ${p.value}`).join('<br>')}`;
 
-const stackTip = (cats) => (ps) => `<b>${esc(cats[ps[0].dataIndex])}</b><br>${ps.filter((p) => p.value).map((p) => `${p.marker}${esc(p.seriesName)}: ${p.value}`).join('<br>')}`;
+// An invisible bar the length of each whole stack, laid over it, that carries the stack's total as a label.
+// The first (biggest) total, which the chart's title names, says so.
+function totals(cats, series, { position = 'right', peak = 0, align, say = () => '' } = {}) {
+  return {
+    id: '_total', type: 'bar', barGap: '-100%', silent: true, tooltip: { show: false }, itemStyle: { color: 'transparent', decal: { symbol: 'none' } },
+    data: cats.map((_, i) => series.reduce((a, s) => a + s.data[i], 0)),
+    label: {
+      show: true, position, color: '#1c1f24', align,
+      formatter: (p) => (p.dataIndex === peak ? `${p.value}${say(p.dataIndex)}, the most` : position === 'right' ? `${p.value}${say(p.dataIndex)}` : ''),
+    },
+  };
+}
 
 export async function render(root, params) {
   const [lob] = await loadAll('lobbying');
@@ -27,10 +32,11 @@ export async function render(root, params) {
     NAMES[d.id] = d.name || d.id.replace('dataset:lobby-', '');
     COLORS[d.id] = DATASET_COLORS[d.id] || DATASET_PALETTE[extra++ % DATASET_PALETTE.length];
   });
-  const recs = lob.records;
+  // registry names come in capitals; normal case is quicker to read
+  const recs = lob.records.map((r) => ({ ...r, client: nameCase(r.client) }));
   const clients = [...new Set(recs.map((r) => r.client))].sort((a, b) => a.localeCompare(b));
   const insts = [...new Set(recs.flatMap((r) => r.institutions))].sort((a, b) => a.localeCompare(b));
-  const state = { ds: params.ds || '', client: params.client || '', inst: params.inst || '', q: params.q || '' };
+  const state = { ds: params.ds || '', client: params.client ? nameCase(params.client) : '', inst: params.inst || '', q: params.q || '' };
   if (state.inst && !insts.includes(state.inst)) {
     const near = insts.find((i) => i.toLowerCase().startsWith(state.inst.toLowerCase()));
     state.inst = near || '';
@@ -46,12 +52,12 @@ export async function render(root, params) {
     <p class="small muted">A record shows that a meeting or contact happened. It does not show what was decided.</p>
     <div class="grid cols-2">
       ${figure('l-inst-chart', {
-        how: `Each bar counts the records that name that part of the government. One record can name several.${multi ? ' Colours and patterns show which list a record comes from.' : ''} Click a bar to show only its records.`,
+        how: `Each bar counts the records that name that part of the government. One record can name several.${multi ? ' Colours and patterns show which list a record comes from.' : ''} Tap or click a bar to show only its records.`,
         src, cls: 'tall',
       })}
       <div>
         ${figure('l-month', { how: 'Each bar is one month. Every month has a slot, so gaps are months with no records.', src, cls: 'short' })}
-        ${figure('l-clients', { how: 'Each bar is one company or group that paid for lobbying. Click a bar to show only that one.', src, cls: 'short' })}
+        ${figure('l-clients', { how: 'Each bar is one company or group that paid for lobbying. Tap or click a bar to show only that one.', src, cls: 'short' })}
       </div>
     </div>
     ${changeBox(`
@@ -101,13 +107,12 @@ export async function render(root, params) {
 
     const a = stacked((r) => r.institutions, rows, 20);
     caption(root, 'l-inst-chart', a.first ? `${esc(a.first[0])} is named in the most records: ${a.first[1]} of ${rows.length}.` : none);
+    const ia = namedBars(instChart, a.cats, { right: 90, head: multi ? 30 : 0 });
     instChart.setOption({
-      ...DECALS,
-      legend: { top: 0, show: multi }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: stackTip(a.cats) },
-      grid: { left: 24, right: 20, top: multi ? 30 : 10, bottom: 10, containLabel: true },
-      xAxis: { type: 'value', minInterval: 1 },
-      yAxis: { type: 'category', inverse: true, data: a.cats.map(instLabel) },
-      series: a.series,
+      ...DECALS, grid: ia.grid, xAxis: ia.xAxis, yAxis: ia.yAxis,
+      legend: { top: 0, show: multi, data: a.series.map((s) => s.name) },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: stackTip(a.cats) },
+      series: [...a.series.map((s) => ({ ...s, barWidth: ia.barWidth })), { ...totals(a.cats, a.series), barWidth: ia.barWidth }],
     }, true);
     instChart.off('click');
     instChart.on('click', (p) => { state.inst = a.cats[p.dataIndex]; $('#l-inst', root).value = state.inst; draw(); });
@@ -117,24 +122,29 @@ export async function render(root, params) {
     const perMonth = months.map((m) => rows.filter((r) => r.date.startsWith(m)).length);
     const peak = perMonth.indexOf(Math.max(...perMonth));
     caption(root, 'l-month', rows.length ? `${month(months[peak])} had the most records: ${perMonth[peak]}.` : none);
+    const monthSeries = lob.datasets.map((d) => ({ name: NAMES[d.id], type: 'bar', stack: 'all', itemStyle: { color: COLORS[d.id] }, data: months.map((m) => rows.filter((r) => r.dataset === d.id && r.date.startsWith(m)).length) }));
     monthChart.setOption({
       ...DECALS,
-      legend: { top: 0, show: multi }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      grid: { left: 10, right: 20, top: multi ? 30 : 10, bottom: 10, containLabel: true },
+      legend: { top: 0, show: multi, data: monthSeries.map((s) => s.name) },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (ps) => `<b>${esc(month(months[ps[0].dataIndex]))}</b><br>${ps.filter((p) => p.value && p.seriesId !== '_total').map((p) => `${p.marker}${esc(p.seriesName)}: ${p.value}`).join('<br>') || 'No records'}` },
+      grid: { left: 10, right: 20, top: multi ? 52 : 28, bottom: 10, containLabel: true },
       xAxis: { type: 'category', data: months, axisLabel: { interval: 0, formatter: monthTick(months.length) } },
       yAxis: { type: 'value', minInterval: 1 },
-      series: lob.datasets.map((d) => ({ name: NAMES[d.id], type: 'bar', stack: 'all', itemStyle: { color: COLORS[d.id] }, data: months.map((m) => rows.filter((r) => r.dataset === d.id && r.date.startsWith(m)).length) })),
+      // the busiest month, which the title names, is labelled on the chart; the label leans inward near the edges
+      series: [...monthSeries, totals(months, monthSeries, { position: 'top', peak, align: peak < months.length / 4 ? 'left' : peak > (3 * months.length) / 4 ? 'right' : 'center' })],
     }, true);
 
     const b = stacked((r) => [r.client], rows, 12);
     caption(root, 'l-clients', b.first ? `${esc(b.first[0])} has the most records: ${b.first[1]} of ${rows.length}.` : none);
+    // when every bar comes from one list, the list's name goes at the end of the bar and no key is needed
+    const lists = b.cats.map((_, i) => b.series.filter((s) => s.data[i]).map((s) => s.name));
+    const named = multi && lists.every((l) => l.length === 1);
+    const ca = namedBars(clientChart, b.cats, { right: named ? 170 : 90, head: multi && !named ? 30 : 0 });
     clientChart.setOption({
-      ...DECALS,
+      ...DECALS, grid: ca.grid, xAxis: ca.xAxis, yAxis: ca.yAxis,
+      legend: { top: 0, show: multi && !named, data: b.series.map((s) => s.name) },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: stackTip(b.cats) },
-      grid: { left: 10, right: 20, top: 10, bottom: 10, containLabel: true },
-      xAxis: { type: 'value', minInterval: 1 },
-      yAxis: { type: 'category', inverse: true, data: b.cats.map((c) => (c.length > 40 ? `${c.slice(0, 39)}…` : c)) },
-      series: b.series,
+      series: [...b.series.map((s) => ({ ...s, barWidth: ca.barWidth })), { ...totals(b.cats, b.series, { say: (i) => (named ? ` · ${lists[i][0]} list` : '') }), barWidth: ca.barWidth }],
     }, true);
     clientChart.off('click');
     clientChart.on('click', (p) => { state.client = b.cats[p.dataIndex]; $('#l-client', root).value = state.client; draw(); });

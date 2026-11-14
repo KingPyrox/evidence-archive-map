@@ -1,7 +1,7 @@
 import { loadAll } from '../services/data.js';
 import { esc, int } from '../helpers/format.js';
 import { $, table, ext, figure, term } from '../helpers/dom.js';
-import { chart } from '../helpers/chart.js';
+import { chart, namedBars } from '../helpers/chart.js';
 
 export const title = 'Survey check';
 
@@ -33,7 +33,7 @@ export async function render(root) {
     <h2>Three ways to count the same answers</h2>
     ${figure('sv-chart', {
       title: `StatCan's figures match the weighted count for ${answers.filter((r) => Math.round(r.weighted_pct) === r.published_pct).length} of ${answers.length} answers. The spreadsheet's way of counting gives a lower number for ${answers.filter((r) => r.raw_pct_all < r.published_pct).length} of them.`,
-      how: `Each group of bars is one answer. Blue is what StatCan published, green is this site's weighted count of the people who were asked, and orange is the archive spreadsheet's method: raw answers divided by all ${int(sv.records)} people.`,
+      how: `Each answer has three bars, named at their ends. <b>StatCan</b> is what StatCan published. <b>This site</b> is the weighted count of the people who were asked. <b>Spreadsheet</b> is the archive spreadsheet's way: raw answers divided by all ${int(sv.records)} people.`,
       src: ext(sv.zip_url, 'survey file (zip)'),
     })}
     ${table([
@@ -86,17 +86,22 @@ export async function render(root) {
       ${misCase ? `<li>${ext(misCase.video_url, 'The case video')}</li>` : ''}
     </ul>`;
 
-  chart($('#sv-chart', root), {
+  // Each answer's name sits above its three bars and each bar is named at its end, so there is no key to look up.
+  const svChart = chart($('#sv-chart', root), {});
+  const sv3 = namedBars(svChart, answers.map((r) => r.label), { bar: 3 * 12 + 2 * 3, right: 160 });
+  const bar = (name, short, color, value, note = () => '') => ({
+    name, type: 'bar', barWidth: 12, barGap: '25%', itemStyle: { color },
+    data: answers.map((r) => (note(r) ? { value: value(r), label: { fontWeight: 'bold', color: '#b54708' } } : value(r))),
+    label: { show: true, position: 'right', color: '#1c1f24', formatter: (p) => `${short} ${p.value}%${note(answers[p.dataIndex])}` },
+  });
+  svChart.setOption({
     aria: { enabled: true, decal: { show: true } },
-    legend: { top: 0 },
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => `${v}%` },
-    grid: { left: 10, right: 20, top: 40, bottom: 10, containLabel: true },
-    xAxis: { type: 'category', data: answers.map((r) => r.label) },
-    yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+    grid: sv3.grid, xAxis: sv3.xAxis, yAxis: sv3.yAxis,
     series: [
-      { name: 'StatCan published', type: 'bar', data: answers.map((r) => r.published_pct), itemStyle: { color: '#1d4ed8' } },
-      { name: 'Weighted, people asked (this site)', type: 'bar', data: answers.map((r) => r.weighted_pct), itemStyle: { color: '#12b76a' } },
-      { name: `Raw count ÷ all ${int(sv.records)} (spreadsheet method)`, type: 'bar', data: answers.map((r) => r.raw_pct_all), itemStyle: { color: '#f79009' } },
+      bar('StatCan published', 'StatCan', '#1d4ed8', (r) => r.published_pct),
+      bar('Weighted, people asked (this site)', 'This site', '#039855', (r) => r.weighted_pct),
+      bar(`Raw count ÷ all ${int(sv.records)} (spreadsheet method)`, 'Spreadsheet', '#dc6803', (r) => r.raw_pct_all, (r) => (r.raw_pct_all < r.published_pct ? ', lower' : '')),
     ],
   });
 }

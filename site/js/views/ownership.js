@@ -1,7 +1,7 @@
 import { loadAll } from '../services/data.js';
 import { esc, int, fileName, nameCase } from '../helpers/format.js';
 import { $, table, ext, setParams, figure, term } from '../helpers/dom.js';
-import { chart } from '../helpers/chart.js';
+import { chart, BAR, BAR_SOFT } from '../helpers/chart.js';
 
 export const title = 'Who owns what';
 
@@ -438,11 +438,16 @@ export async function render(root, params) {
   }
 
   chart($('#o-levels', root), {
-    grid: { left: 10, right: 20, top: 24, bottom: 24, containLabel: true },
+    grid: { left: 10, right: 20, top: 28, bottom: 24, containLabel: true },
     tooltip: { trigger: 'axis', formatter: (ps) => `${ps[0].name} level${ps[0].name === '1' ? '' : 's'} below Brookfield: <b>${int(ps[0].value)}</b> companies` },
     xAxis: { type: 'category', name: 'levels below Brookfield', nameLocation: 'middle', nameGap: 26, data: levels.map((l) => l - 1) },
-    yAxis: { type: 'value', name: 'companies' },
-    series: [{ type: 'bar', data: levels.map((l) => st.by_level[l]), itemStyle: { color: '#1d4ed8' }, label: { show: true, position: 'top' } }],
+    yAxis: { type: 'value' },
+    // the level the title names is dark and says so
+    series: [{
+      type: 'bar',
+      data: levels.map((l) => (l === widest ? { value: st.by_level[l], itemStyle: { color: BAR }, label: { fontWeight: 'bold', formatter: `${int(st.by_level[l])}, the most` } } : { value: st.by_level[l], itemStyle: { color: BAR_SOFT } })),
+      label: { show: true, position: 'top', formatter: (p) => int(p.value) },
+    }],
   });
 
   root.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));

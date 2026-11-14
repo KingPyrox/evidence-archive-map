@@ -27,7 +27,7 @@ export async function render(root, params) {
     <p class="lead">Everything in the archive that has a date: events in the files, lobbying records, the videos, and the day
       each case came out. Each entry links to where it came from.</p>
     ${figure('t-chart', {
-      how: 'Each bar is one month. Every month has a slot, so empty stretches are months with nothing dated. Colours and patterns show the kind of entry. Click a bar to jump to that month in the list below.',
+      how: 'Each bar is one month. Every month has a slot, so empty stretches are months with nothing dated. Colours and patterns show the kind of entry. Tap or click a bar to jump to that month in the list below.',
       src: 'the dated files, tables and video list in the Evidence-Archive.', cls: 'short',
     })}
     ${changeBox(`
@@ -45,8 +45,9 @@ export async function render(root, params) {
     const perYear = new Map();
     dated.forEach((d) => perYear.set(d.slice(0, 4), (perYear.get(d.slice(0, 4)) || 0) + 1));
     const [busy, busyN] = [...perYear.entries()].sort((a, b) => b[1] - a[1])[0] || [];
+    const marked = rows.length > 0 && perYear.size > 1 && busyN / rows.length >= 0.75;
     caption(root, 't-chart', !rows.length ? 'No entries match these filters.'
-      : perYear.size > 1 && busyN / rows.length >= 0.75
+      : marked
         ? `Most dated entries are from ${busy}: ${busyN} of ${rows.length}. The earliest is from ${esc(month(dated[0].slice(0, 7)))}.`
         : `${rows.length} dated entries, from ${esc(month(dated[0].slice(0, 7)))} to ${esc(month(dated[dated.length - 1].slice(0, 7)))}.`);
     c.setOption({
@@ -55,9 +56,11 @@ export async function render(root, params) {
       grid: { left: 10, right: 20, top: 30, bottom: 10, containLabel: true },
       xAxis: { type: 'category', data: months, axisLabel: { interval: 0, formatter: monthTick(months.length) }, axisTick: { alignWithLabel: true } },
       yAxis: { type: 'value', minInterval: 1, name: 'entries' },
-      series: Object.entries(TIMELINE_LAYERS).filter(([k]) => state.layers.has(k)).map(([k, v]) => ({
+      series: Object.entries(TIMELINE_LAYERS).filter(([k]) => state.layers.has(k)).map(([k, v], j) => ({
         name: v.label, type: 'bar', stack: 'all', itemStyle: { color: v.color }, barMinHeight: 0,
         data: months.map((m) => rows.filter((e) => e.layer === k && e.date.startsWith(m)).length),
+        // when the title names a busy year, that year is shaded and named on the chart
+        ...(j === 0 && marked ? { markArea: { silent: true, itemStyle: { color: 'rgba(29,78,216,0.09)' }, label: { position: 'insideTop', color: '#1c1f24', fontWeight: 'bold' }, data: [[{ name: busy, xAxis: months.find((m) => m.startsWith(busy)) }, { xAxis: months.findLast((m) => m.startsWith(busy)) }]] } } : {}),
       })),
     }, true);
     c.off('click');

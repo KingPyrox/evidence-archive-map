@@ -1,13 +1,12 @@
 import { loadAll } from '../services/data.js';
 import { esc, money, moneyShort, fileName, countWord, perPerson } from '../helpers/format.js';
 import { $, sourceHtml, options, table, setParams, ext, figure, caption, term, changeBox, more, showAll } from '../helpers/dom.js';
-import { chart } from '../helpers/chart.js';
+import { chart, lines, BAR, BAR_SOFT } from '../helpers/chart.js';
 import { MONEY_KINDS } from '../enums/kinds.js';
 import { POPULATION } from '../enums/population.js';
 
 export const title = 'Money flows';
 
-const short = (s, n = 42) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 const OTHER_KIND = { label: 'Other amounts', help: 'Amounts this site has not sorted into a kind yet.' };
 const TOPS = [10, 20, 40, 999];
 const CARDS = 4; // amounts shown per group before "Show all"
@@ -52,7 +51,7 @@ export async function render(root, params) {
       src: estSrc, cls: 'short',
     })}
     ${figure('t-chart', {
-      how: 'Departments that gave money are on the left. Departments that got it are on the right. A thicker band means more money. Small transfers are grouped into one band. Point at a band to see its amount.',
+      how: 'Departments that gave money are on the left. Departments that got it are on the right. A thicker band means more money. Small transfers are grouped into one band. Tap or point at a band to see its amount. The darkest band is the largest transfer.',
       src: estSrc,
     })}
     ${changeBox(`<label>Plan <select id="t-round">${options(est.transfers.map((t) => [t.key, `${t.key} (${moneyShort(t.moved)} moved)`]), state.round)}</select></label>
@@ -94,11 +93,16 @@ export async function render(root, params) {
     <p class="small muted">“For every person” uses Canada's population on ${esc(POPULATION.asOf)}, from ${ext(POPULATION.url, 'Statistics Canada')}.</p>`;
 
   chart($('#t-total', root), {
-    grid: { left: 10, right: 20, top: 24, bottom: 10, containLabel: true },
+    grid: { left: 10, right: 20, top: 40, bottom: 10, containLabel: true },
     tooltip: { trigger: 'axis', valueFormatter: (v) => money(v) },
     xAxis: { type: 'category', data: rounds },
     yAxis: { type: 'value', axisLabel: { formatter: moneyShort } },
-    series: [{ type: 'bar', data: est.transfers.map((t) => t.moved), itemStyle: { color: '#1d4ed8' }, label: { show: true, position: 'top', formatter: (p) => moneyShort(p.value) } }],
+    // the plan the title names is dark and says so
+    series: [{
+      type: 'bar',
+      data: est.transfers.map((t) => (t.key === biggest.key ? { value: t.moved, itemStyle: { color: BAR }, label: { fontWeight: 'bold' } } : { value: t.moved, itemStyle: { color: BAR_SOFT } })),
+      label: { show: true, position: 'top', formatter: (p) => (est.transfers[p.dataIndex].key === biggest.key ? `the most\n${moneyShort(p.value)}` : moneyShort(p.value)) },
+    }],
   });
 
   const flowChart = chart($('#t-chart', root), {});
@@ -125,16 +129,22 @@ export async function render(root, params) {
     const names = [...new Set([...links.map((l) => l.source), ...links.map((l) => l.target)])];
     const lead = flows[0];
     caption(root, 't-chart', `${esc(t.key)}: ${moneyShort(t.moved)} moved in ${flows.length} transfers. The largest was ${esc(lead.from)} to ${esc(lead.to)}, ${lead.split ? 'about ' : ''}${moneyShort(lead.amount)}.`);
-    flowChart.getDom().style.height = `${Math.max(420, Math.min(1600, names.length * 18))}px`;
+    // full names, wrapped; the chart grows until every name has room beside its band
+    const labelWidth = Math.max(100, Math.floor((flowChart.getDom().clientWidth - 60) / 2) - 8);
+    // the gap between boxes is as tall as the tallest wrapped name, so names of small boxes never overlap
+    const gap = Math.max(8, ...names.map((n) => lines(n.trim(), labelWidth) * 15)) + 4;
+    const most = Math.max(...[true, false].map((side) => names.filter((n) => n.startsWith('→') === side).length));
+    flowChart.getDom().style.height = `${Math.max(420, Math.min(4000, most * gap + 320))}px`;
     flowChart.resize();
     flowChart.setOption({
       tooltip: { confine: true, formatter: (p) => (p.dataType === 'edge' ? `${esc(p.data.source)} ${esc(p.data.target)}<br><b>${p.data.split ? '≈ ' : ''}${money(p.data.value)}</b>` : esc(p.name)) },
       series: [{
-        type: 'sankey', left: 10, right: 10, nodeGap: 8, nodeAlign: 'justify', emphasis: { focus: 'adjacency' },
-        label: { fontSize: 11, formatter: (p) => short(p.name.trim(), 46) },
+        type: 'sankey', left: 10, right: 10, nodeGap: gap, nodeAlign: 'justify', emphasis: { focus: 'adjacency' },
+        label: { width: labelWidth, overflow: 'break', lineHeight: 15, formatter: (p) => p.name.trim() },
         // receivers sit in the right-hand column, so their names go on the inside, not off the edge
         data: names.map((name) => ({ name, label: { position: name.startsWith('→') ? 'left' : 'right' } })),
-        links,
+        // the largest transfer, which the title names, is drawn darker
+        links: links.map((l, i) => (i ? l : { ...l, lineStyle: { opacity: 0.7 } })),
         lineStyle: { color: 'gradient', opacity: 0.3 },
       }],
     }, true);

@@ -1,7 +1,7 @@
 import { loadAll } from '../services/data.js';
 import { esc } from '../helpers/format.js';
 import { $, sourceHtml, options, setParams, table, figure, caption, changeBox } from '../helpers/dom.js';
-import { chart } from '../helpers/chart.js';
+import { chart, textWidth } from '../helpers/chart.js';
 import { caseIndex, nodeCases } from '../helpers/cases.js';
 import { NODE_TYPES, EDGE_KINDS, LAYERS } from '../enums/kinds.js';
 
@@ -50,10 +50,10 @@ export async function render(root, params) {
     </div>
     <div class="map-layout">
       <div>
-        ${figure('m-chart', { how: `Shapes and colours show the kind of item (key below the map). Bigger shapes have more connections. Only the ${LABELS} most connected have names: point at a shape for its name, click it for its sources. Drag to move, scroll or pinch to zoom.` })}
+        ${figure('m-chart', { how: `Shapes and colours show the kind of item (key below the map). Bigger shapes have more connections. Only the ${LABELS} most connected have names: point at a shape for its name, and tap or click it for its sources. Drag to move, scroll or pinch to zoom.` })}
         <div class="legend-list">${['data', 'stated', 'computed'].map((k) => `<span title="${esc(EDGE_KINDS[k].help)}"><span class="line-sample ${EDGE_KINDS[k].style}"></span>${esc(EDGE_KINDS[k].label)}</span>`).join('')}
-          <span><span class="line-sample" style="border-color:#f5b971"></span>Lobbying record</span>
-          <span><span class="line-sample" style="border-color:#d0d5dd"></span>Appears in case</span></div>
+          <span><span class="line-sample" style="border-color:#c26a05"></span>Lobbying record</span>
+          <span><span class="line-sample" style="border-color:#7d879a"></span>Appears in case</span></div>
         <div id="m-table" hidden></div>
       </div>
       <aside class="side" id="m-side" aria-live="polite"></aside>
@@ -86,21 +86,27 @@ export async function render(root, params) {
     const named = new Set(Object.entries(deg).sort((a, b) => b[1] - a[1]).slice(0, LABELS).map(([id]) => id));
     const scope = state.case === ALL ? 'All cases' : state.case === TABLES ? 'The lobbying tables' : idx.byId[state.case].title;
     caption(root, 'm-chart', `${esc(scope)}: ${view.nodes.length} items and ${view.edges.length} connections${state.layers.size ? '' : '. Tick a layer under the map to draw connections'}.`);
+    // the key wraps onto as many rows as it needs, so no entry is cut off on a phone
+    const keyTypes = TYPES.filter((t) => present.has(t));
+    const room = c.getDom().clientWidth - 16;
+    let keyRows = 1;
+    let x = 0;
+    keyTypes.forEach((t) => { const w = 42 + textWidth(NODE_TYPES[t].label); if (x && x + w > room) { keyRows += 1; x = 0; } x += w; });
     c.setOption({
       tooltip: { confine: true, formatter: (p) => (p.dataType === 'edge' ? esc(p.data.tip) : `<b>${esc(p.data.name)}</b><br>${esc(NODE_TYPES[p.data.type].label)}`) },
-      legend: [{ type: 'scroll', bottom: 4, left: 8, right: 8, data: TYPES.filter((t) => present.has(t)).map((t) => ({ name: NODE_TYPES[t].label, icon: NODE_TYPES[t].symbol })), textStyle: { fontSize: 11 } }],
+      legend: [{ type: 'plain', bottom: 4, left: 8, right: 8, itemGap: 10, data: keyTypes.map((t) => ({ name: NODE_TYPES[t].label, icon: NODE_TYPES[t].symbol })), textStyle: { fontSize: 12 } }],
       animationDurationUpdate: 400,
       series: [{
         type: 'graph',
         layout: 'force',
         top: 20,
-        bottom: 44,
+        bottom: 16 + keyRows * 22,
         roam: true,
         draggable: true,
         categories: TYPES.map((t) => ({ name: NODE_TYPES[t].label, itemStyle: { color: NODE_TYPES[t].color }, symbol: NODE_TYPES[t].symbol })),
         data: view.nodes.map((n) => ({
           id: n.id,
-          name: n.label.length > 60 ? `${n.label.slice(0, 57)}…` : n.label,
+          name: n.label,
           type: n.type,
           category: TYPES.indexOf(n.type),
           symbolSize: 7 + 3.2 * Math.sqrt(deg[n.id] || 1),
@@ -117,9 +123,10 @@ export async function render(root, params) {
             tip: e.label,
             lineStyle: {
               type: EDGE_KINDS[e.kind].style,
-              color: cs ? '#d0d5dd' : lob ? '#f5b971' : '#475467',
+              // every line passes 3:1 against the background, after opacity (WCAG 1.4.11)
+              color: cs ? '#7d879a' : lob ? '#c26a05' : '#475467',
               width: cs ? 0.6 : lob ? 0.8 + Math.min(e.weight || 1, 6) * 0.3 : 1.3,
-              opacity: cs ? 0.55 : 0.85,
+              opacity: cs ? 0.9 : 0.85,
               curveness: 0.06 + i * 0.12,
             },
           };
@@ -128,8 +135,18 @@ export async function render(root, params) {
         edgeSymbolSize: 5,
         // small views get more room, so the few labels shown do not sit on top of each other
         force: view.nodes.length < 40 ? { repulsion: 700, edgeLength: [90, 180], gravity: 0.1, friction: 0.25 } : { repulsion: 150, edgeLength: [30, 120], gravity: 0.07, friction: 0.25 },
-        label: { position: 'right', fontSize: 11, color: '#1c1f24' },
-        labelLayout: { hideOverlap: true },
+        label: { position: 'right', color: '#1c1f24', width: Math.min(150, Math.round(room / 2.5)), overflow: 'break', lineHeight: 15 },
+        // a name that would run off an edge moves back inside: to the left of its shape if there is room, else along the edge
+        labelLayout: (p) => {
+          const r = p.labelRect;
+          const W = c.getWidth();
+          const H = c.getHeight();
+          const out = { hideOverlap: true };
+          if (r.x + r.width > W - 4) Object.assign(out, p.rect.x - 4 - r.width >= 4 ? { x: p.rect.x - 4, align: 'right' } : { x: Math.max(4, W - 4 - r.width), align: 'left' });
+          if (r.y < 4) out.dy = 4 - r.y;
+          else if (r.y + r.height > H - 4) out.dy = H - 4 - r.y - r.height;
+          return out;
+        },
         emphasis: { focus: 'adjacency', lineStyle: { width: 2.5 }, label: { show: true } },
       }],
     }, true);
