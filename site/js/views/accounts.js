@@ -20,10 +20,10 @@ const wording = (x, b, src) => {
 function totalTable(b, src) {
   const rows = b.parts.flatMap((p) => (p.items ? [{ ...p, sub: true }, ...p.items.map((i) => ({ ...i, in: true }))] : [p]));
   return table([
-    { label: 'What the money covers', html: (r) => (r.sub ? `<b>${esc(r.name)}</b> ${tick(r)}` : `${r.in ? '<span class="muted">·</span> ' : ''}${esc(r.name)}`) },
+    { label: 'What the money covers', html: (r) => (r.sub ? `<b>${esc(r.name)}</b> ${tick(r)}` : `${r.in ? '<span class="muted">·</span>&nbsp;' : ''}${esc(r.name)}`) },
     { label: 'Amount', num: true, html: (r) => (r.sub ? `<b>${money(r.amount)}</b>` : money(r.amount)) },
     { label: 'Government wording', html: (r) => wording(r, b, src) },
-  ], rows);
+  ], rows, { cls: 'money-rows' });
 }
 
 // Vesper's source groups, with groups of the same name (one money type listed in two places) shown as one list.
@@ -103,7 +103,7 @@ export async function render(root, params) {
       { label: 'Kinds of cost added up', num: true, value: (d) => money(d.gross) },
       { label: 'Money earned, taken off', num: true, value: (d) => (d.offsets ? money(-d.offsets) : '—') },
       { label: 'Spending after that', num: true, value: (d) => money(d.net) },
-    ], depts, { limit: 20 })}
+    ], depts, { limit: 20, cls: 'named' })}
 
     <h3>Volume II's other totals</h3>
     <p class="small muted">The same spending, split a different way, and the fees departments collected. Each total is the sum of its department rows.</p>
@@ -112,7 +112,7 @@ export async function render(root, params) {
       { label: 'Departments listed', num: true, value: (b) => int(b.parts.length) },
       { label: 'Amount', num: true, value: (b) => money(b.amount) },
       { label: 'Check', html: tick },
-    ], totalsOf(v2).filter((b) => !pa.kinds_of_cost.includes(b.name) && !pa.offsets.includes(b.name)))}` : ''}
+    ], totalsOf(v2).filter((b) => !pa.kinds_of_cost.includes(b.name) && !pa.offsets.includes(b.name)), { cls: 'named' })}` : ''}
 
     ${v1 ? `
     <h2>Other figures in Volume I</h2>
@@ -122,13 +122,13 @@ export async function render(root, params) {
       { label: 'Money type', value: (b) => b.type },
       { label: 'Amount', num: true, value: (b) => money(b.amount) },
       { label: 'Government wording', html: (b) => wording(b, b, v1.source) },
-    ], v1.blocks.filter((b) => b.kind === 'figure'))}
+    ], v1.blocks.filter((b) => b.kind === 'figure'), { cls: 'named' })}
     ${groups(v1).map(([name, list]) => `<h3>${esc(name)}</h3>
       ${table([
         { label: 'What the money covers', value: (r) => r.name },
         { label: 'Amount', num: true, value: (r) => money(r.amount) },
         { label: 'Government wording', html: (r) => wording(r, r.g, v1.source) },
-      ], list)}`).join('')}` : ''}
+      ], list, { cls: 'money-rows' })}`).join('')}` : ''}
 
     ${claims ? `
     <h2>${esc(claimsName)}</h2>
@@ -203,7 +203,7 @@ export async function render(root, params) {
     $('#a-dept-table', root).innerHTML = table([
       { label: 'Kind of cost', html: (r) => (r.off ? `<i>${esc(r.k)}</i>` : esc(r.k)) },
       { label: 'Amount', num: true, value: (r) => money(r.v) },
-    ], rows);
+    ], rows, { cls: 'narrow' });
   }
   const top = chart($('#a-top', root), {});
   const list = depts.slice(0, 20);

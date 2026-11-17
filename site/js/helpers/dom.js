@@ -4,7 +4,7 @@ import { GLOSSARY } from '../enums/glossary.js';
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-export const ext = (url, text) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(text)} ↗</a>`;
+export const ext = (url, text) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(text)}&nbsp;↗</a>`; // the arrow never wraps onto a line by itself
 
 // A dotted word that shows its plain meaning when tapped, clicked or focused (handler in app.js). Help sits where the
 // word is, instead of in a tutorial readers skip.
@@ -56,11 +56,11 @@ export function caption(root, id, title, how) {
   if (how != null) $(`#${id}-how`, root).innerHTML = how;
 }
 
-export function table(cols, rows, { empty = 'Nothing to show.', limit = 0 } = {}) {
+export function table(cols, rows, { empty = 'Nothing to show.', limit = 0, cls = '' } = {}) {
   if (!rows.length) return `<p class="muted">${esc(empty)}</p>`;
   const head = cols.map((c) => `<th class="${c.num ? 'num' : ''}" scope="col">${esc(c.label)}</th>`).join('');
   const body = rows.map((r, i) => `<tr${more(i, limit)}>${cols.map((c) => `<td class="${c.num ? 'num' : ''}">${c.html ? c.html(r) : esc(c.value(r))}</td>`).join('')}</tr>`).join('');
-  return `<div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${showAll(rows.length, limit)}`;
+  return `<div class="table-wrap${cls ? ` ${cls}` : ''}"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${showAll(rows.length, limit)}`;
 }
 
 export const options = (items, selected) => items.map(([v, label]) => `<option value="${esc(v)}"${v === selected ? ' selected' : ''}>${esc(label)}</option>`).join('');

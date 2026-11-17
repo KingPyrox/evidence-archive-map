@@ -698,8 +698,12 @@ def public_accounts(src):
     departments = sorted(({"name": k, **v, "net": v["gross"] - v["offsets"]} for k, v in dept.items()), key=lambda d: -d["net"])
     net = next((b for t in tables for b in t["blocks"] if b["kind"] == "group" and b["wording"].startswith(NET_GROUP)), None)
     if std:
+        # Counted, not listed, so the checks table stays readable: "n of n" on both sides only when the two lists match exactly.
+        calc = Counter([b["amount"] for b in std] + [-b["amount"] for b in off])
+        pub = Counter(p["amount"] for p in net["parts"]) if net else Counter()
         check("Public Accounts: Vol II's published 'spending after offsets' entries = the 12 calculated cost totals and the 2 revenue offsets",
-              sorted([b["amount"] for b in std] + [-b["amount"] for b in off]), sorted(p["amount"] for p in net["parts"]) if net else None)
+              f"{sum(calc.values())} of {sum(calc.values())}", f"{sum((calc & pub).values())} of {sum(pub.values())}",
+              "Published entries that equal a calculated total, out of all published entries.")
         check("Public Accounts: departments' spending after offsets adds up to the published entries",
               sum(p["amount"] for p in net["parts"]) if net else None, sum(d["net"] for d in departments))
     return {"tables": tables, "lists": lists, "agree": agree, "departments": departments,
