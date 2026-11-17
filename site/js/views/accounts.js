@@ -52,6 +52,10 @@ export async function render(root, params) {
   const state = { dept: depts.some((d) => d.name === params.dept) ? params.dept : depts[0].name };
   const v1Src = v1 ? ext(v1.url, v1.file.split('/').pop()) : '';
   const v2Src = v2 ? ext(v2.url, v2.file.split('/').pop()) : '';
+  const lists = pa.lists || [];
+  const claims = lists.find((t) => /Claims/i.test(t.title));
+  const claimsName = claims ? claims.title.replace(/^.*\d{4}-/, '') : '';
+  const withheld = claims ? claims.records.filter((r) => /withheld/i.test(r.who)) : [];
 
   root.innerHTML = `
     <h1>Public Accounts 2025-26: money in, money out</h1>
@@ -126,6 +130,20 @@ export async function render(root, params) {
         { label: 'Government wording', html: (r) => wording(r, r.g, v1.source) },
       ], list)}`).join('')}` : ''}
 
+    ${claims ? `
+    <h2>${esc(claimsName)}</h2>
+    <p>${term('claims', 'Claims against the Crown')} are payments the government made to settle lawsuits and other claims.
+      Volume III lists ${int(claims.rows)} of them for ${esc(claims.ref.replace(/^.*FY /, 'the year ending March 31, '))}, worth
+      <b>${money(claims.total)}</b> in all. ${withheld.length ? `${int(withheld.length)} of them, worth ${money(withheld.reduce((a, r) => a + r.amount, 0))}, list the person paid as “withheld”.` : ''}</p>
+    ${figure('a-claims', { how: 'Each bar is one department\'s claim payments added up, biggest first.', src: ext(claims.url, claims.file.split('/').pop()) })}
+    <h3>The largest payments</h3>
+    ${table([
+      { label: 'Paid to', value: (r) => r.who },
+      { label: 'Department or agency', value: (r) => r.dept },
+      { label: 'Amount', num: true, value: (r) => money(r.amount) },
+    ], [...claims.records].sort((a, b) => b.amount - a.amount), { limit: 15 })}
+    <p class="small">Source: ${ext(claims.source, 'open.canada.ca')} · ${esc(claims.ref)}</p>` : ''}
+
     <h2>How these numbers are checked</h2>
     <ul>${checks.map((c) => `<li>${c.pass ? '<span class="badge ok">pass</span>' : '<span class="badge warn">fail</span>'} ${esc(c.name.replace(/^Public Accounts: /, ''))}</li>`).join('')}</ul>
 
@@ -135,7 +153,7 @@ export async function render(root, params) {
       { label: 'What Vesper exported', value: (t) => t.about.filter((a) => a.includes('•')).join(' ') },
       { label: 'Rows', num: true, value: (t) => int(t.rows) },
       { label: 'Government source', html: (t) => (t.source ? ext(t.source, 'open.canada.ca') : '') },
-    ], [v1, v2, ...others].filter(Boolean))}`;
+    ], [v1, v2, ...others, ...lists].filter(Boolean))}`;
 
   if (debt) {
     const c = chart($('#a-debt', root), {});
@@ -159,6 +177,19 @@ export async function render(root, params) {
       ...frame,
       tooltip: { trigger: 'item', confine: true, formatter: (p) => `${esc(p.name)}<br><b>${money(p.value)}</b>` },
       series: [{ type: 'bar', barWidth, data: list.map(([, v], i) => ({ value: v, itemStyle: { color: i ? BAR_SOFT : BAR } })),
+        label: { show: true, position: 'right', formatter: (p) => moneyShort(p.value) } }],
+    });
+  }
+
+  if (claims) {
+    const c = chart($('#a-claims', root), {});
+    const list = claims.by_dept.slice(0, 15);
+    caption(root, 'a-claims', `${esc(list[0].name)} paid the most in claims: ${moneyShort(list[0].amount)} over ${int(list[0].count)} payments. The 15 largest are shown.`);
+    const { barWidth, ...frame } = namedBars(c, list.map((d) => d.name), { right: 80 });
+    c.setOption({
+      ...frame,
+      tooltip: { trigger: 'item', confine: true, formatter: (p) => `${esc(p.name)}<br><b>${money(p.value)}</b> in ${int(list[p.dataIndex].count)} payments` },
+      series: [{ type: 'bar', barWidth, data: list.map((d, i) => ({ value: d.amount, itemStyle: { color: i ? BAR_SOFT : BAR } })),
         label: { show: true, position: 'right', formatter: (p) => moneyShort(p.value) } }],
     });
   }

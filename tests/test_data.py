@@ -90,6 +90,9 @@ class DataContract(unittest.TestCase):
                             self.assertEqual(p["amount"], sum(i["amount"] or 0 for i in p["items"]), (t["title"], p["row"]))
         self.assertEqual(pa["net_total"], sum(d["net"] for d in pa["departments"]))
         self.assertTrue(any(a["same"] for a in pa["agree"]))
+        for t in pa.get("lists", []):
+            self.assertEqual(t["rows"], len(t["records"]))
+            self.assertAlmostEqual(t["total"], sum(d["amount"] for d in t["by_dept"]), places=2)
 
     def test_ownership_tree_counts(self):
         o = load("ownership")

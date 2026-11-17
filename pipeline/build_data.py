@@ -333,7 +333,7 @@ LINK_TYPES = {"Group root", "Published link", "Repeated link", "Not controlled",
 
 
 def brookfield(src):
-    rel = locate(src, "Tables/BROOKFIELD_CORPORATION.pdf")
+    rel = locate(src, "Tables/BROOKFIELD_CORPORATION - Company Subsidiary Structure.pdf")
     twin = "Who Runs Canada_Brookfield Corp/Files/BROOKFIELD_CORPORATION_Corp.pdf.pdf"
     texts = {}
     for r in (rel, twin):
@@ -616,8 +616,53 @@ def money_table(src, rel):
     return {"file": rel, "url": gh(rel), "title": title, "about": about, "source": source, "rows": rows, "blocks": blocks}
 
 
+# Vesper's lists of single payments (Volume III, such as Claims Against the Crown): one row per payment, no totals.
+RECORD_HEAD = ("Date", "Amount (CAD)", "Subject / Record", "Department / Organization", "Reference")
+
+
+def record_table(src, rel):
+    ws = openpyxl.load_workbook(src / rel).worksheets[0]
+    head = next((r for r in range(1, 30) if tuple(str(ws.cell(r, c).value or "").strip() for c in range(1, 6)) == RECORD_HEAD), None)
+    if head is None:
+        return None
+    about = {}
+    for r in range(1, head):
+        cells = [" ".join(str(ws.cell(r, c).value).split()) for c in range(1, 4) if str(ws.cell(r, c).value or "").strip()]
+        if cells:
+            about[cells[0]] = cells[1] if len(cells) > 1 else ""
+    recs, links = [], Counter()
+    for r in ws.iter_rows(min_row=head + 1, max_col=7):
+        if r[1].value is None:
+            continue
+        link = next((c.hyperlink.target for c in r if c.hyperlink and c.hyperlink.target), None)
+        links[link] += 1
+        d = r[0].value
+        a = round(r[1].value, 2)
+        recs.append({"date": d.date().isoformat() if hasattr(d, "date") else str(d), "amount": int(a) if a == int(a) else a,
+                     "who": str(r[2].value or "").strip(), "dept": str(r[3].value or "").strip(), "ref": str(r[4].value or "").strip(), "url": link})
+    # Every row repeats the link, date and reference; keep them once, and on a row only where it differs.
+    common = {"url": links.most_common(1)[0][0]} | {k: Counter(x[k] for x in recs).most_common(1)[0][0] for k in ("date", "ref")}
+    for x in recs:
+        for k, v in common.items():
+            if x.get(k) == v:
+                x.pop(k)
+    source = common["url"]
+    exported = int(num(about.get("RECORDS EXPORTED")) or 0)
+    title = Path(rel).stem
+    check(f"Public Accounts: '{title}' has every record its export says ({exported})", exported, len(recs))
+    by = defaultdict(lambda: {"count": 0, "amount": 0})
+    for x in recs:
+        by[x["dept"]]["count"] += 1
+        by[x["dept"]]["amount"] += x["amount"]
+    return {"file": rel, "url": gh(rel), "title": title, "about": [f"{k} {v}".strip() for k, v in about.items()], "source": source,
+            "date": common["date"], "ref": common["ref"], "rows": len(recs), "total": round(sum(x["amount"] for x in recs), 2), "records": recs,
+            "by_dept": sorted(({"name": k, "count": v["count"], "amount": round(v["amount"], 2)} for k, v in by.items()), key=lambda d: -d["amount"])}
+
+
 def public_accounts(src):
-    tables = [t for t in (money_table(src, p.relative_to(src).as_posix()) for p in sorted((src / "Tables").glob("*.xlsx"))) if t]
+    xlsx = sorted((src / "Tables").glob("*.xlsx"))
+    tables = [t for t in (money_table(src, p.relative_to(src).as_posix()) for p in xlsx) if t]
+    lists = [t for t in (record_table(src, p.relative_to(src).as_posix()) for p in xlsx) if t]
     if not tables:
         raise FileNotFoundError("no Public Accounts tables (header 'What the money covers') in Tables/")
     totals = [(t, b) for t in tables for b in t["blocks"] if b["kind"] == "total"]
@@ -657,7 +702,7 @@ def public_accounts(src):
               sorted([b["amount"] for b in std] + [-b["amount"] for b in off]), sorted(p["amount"] for p in net["parts"]) if net else None)
         check("Public Accounts: departments' spending after offsets adds up to the published entries",
               sum(p["amount"] for p in net["parts"]) if net else None, sum(d["net"] for d in departments))
-    return {"tables": tables, "agree": agree, "departments": departments,
+    return {"tables": tables, "lists": lists, "agree": agree, "departments": departments,
             "kinds_of_cost": [b["name"] for b in sorted(std, key=lambda b: -b["amount"])], "offsets": [b["name"] for b in off],
             "net_total": sum(p["amount"] for p in net["parts"]) if net else None}
 
@@ -837,7 +882,7 @@ def main():
         "counts": {"files": len(files), "nodes": len(graph["nodes"]), "edges": len(graph["edges"]), "events": len(tl),
                    "lobbying_records": len(lob["records"]), "ownership_links": own["stats"]["links"], "estimate_rounds": len(est["rounds"]),
                    "external_links": len({l["url"] for l in links}), "survey_records": srv["records"],
-                   "public_accounts_rows": sum(t["rows"] for t in pa["tables"])},
+                   "public_accounts_rows": sum(t["rows"] for t in pa["tables"] + pa.get("lists", []))},
     }
     payload = {"summary": summary, "graph": graph, "timeline": tl, "lobbying": lob, "ownership": own, "estimates": est, "survey": srv, "public_accounts": pa,
                "sources": {"files": files, "pdf_links": links}}

@@ -94,7 +94,7 @@ export async function render(root, params) {
       <div class="panel"><h3>Outside investors</h3>
         ${table([{ label: 'Investor', value: (n) => n.name }, { label: 'Share', num: true, value: (n) => `${n.pct}%` }, { label: 'Page', num: true, value: (n) => n.page }], o.outside_investors)}
         <h3 style="margin-top:1rem">About the source</h3>
-        <p class="small">The same table appears twice in the archive: ${ext(o.url, 'Tables/BROOKFIELD_CORPORATION.pdf')} and in the
+        <p class="small">The same table appears twice in the archive: ${ext(o.url, o.file)} and in the
           case folder (${esc(o.twin.split('/').pop())}). The build confirmed their text is identical. The table is marked
           “GOVERNMENT OF CANADA RECORD · CORP &amp; FINANCE · INTER-CORPORATE OWNERSHIP”.
           ${brkCase ? ext(brkCase.video_url, 'Case video') : ''}</p>
