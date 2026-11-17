@@ -173,10 +173,11 @@ details summary { cursor: pointer; color: var(--link); }
 .tagline.credit { color: #98a2b3; font-size: .85rem; }
 .tagline.credit b { color: #e4e7ec; }
 .tagline.credit a { color: #cbd5e1; text-decoration-color: rgba(203, 213, 225, .45); }
-.head-search { order: 3; margin-left: auto; color: #fff; text-decoration: none; font-size: .9rem; background: rgba(255, 255, 255, .06); border: 1px solid #2b3340; border-radius: 999px; padding: .3rem .95rem; align-self: center; }
-.head-search:hover { background: rgba(255, 255, 255, .12); border-color: #475467; }
+.head-actions { order: 3; margin-left: auto; display: flex; gap: .5rem; align-self: center; }
+.head-btn { color: #fff; text-decoration: none; font-size: .9rem; background: rgba(255, 255, 255, .06); border: 1px solid #2b3340; border-radius: 999px; padding: .3rem .95rem; }
+.head-btn:hover { background: rgba(255, 255, 255, .12); border-color: #475467; }
 @media (max-width: 700px) {
-  .head-search { order: 1; }
+  .head-actions { order: 1; }
   .tagline.credit { order: 2; flex-basis: 100%; }
 }
 
