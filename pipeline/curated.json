@@ -6,7 +6,8 @@
     "drn": "The Rules That Vanished _ Dangerous A.I Military Drones",
     "tim": "Tim Caulfied  Government Funded Misinformation Guru Who Got It Wrong",
     "brk": "Who Runs Canada_Brookfield Corp",
-    "tbl": "Tables"
+    "tbl": "Tables",
+    "nsr": "NSIRA - Reviews CSIS and the breach of laws"
   },
   "cases": [
     {
@@ -75,6 +76,18 @@
       "summary": "Brookfield Corporation's published inter-corporate ownership structure (reference year 2025, 1,102 published ownership links).",
       "datasets": [
         "dataset:brookfield-ownership"
+      ]
+    },
+    {
+      "id": "case:nsira",
+      "folder": "@nsr",
+      "title": "NSIRA Reviews CSIS and the breach of laws",
+      "headline": "Reviewing the Failure of Canada's Spy Agency (CSIS), Breaching Laws",
+      "date": "2026-11-15",
+      "video": "xce64xYGzL4",
+      "summary": "What NSIRA, the agency that reviews Canada's spy service, found about CSIS: activity CSIS conceded was illegal, a Charter risk, data kept that should have been destroyed, and CSIS Act rules on acts that would otherwise be offences that CSIS may not have followed. The archive holds NSIRA's annual reports for 2019 to 2024, its Review 24-05, and Vesper's 25-point presentation.",
+      "datasets": [
+        "dataset:nsira-reports"
       ]
     }
   ],
@@ -463,6 +476,51 @@
       "type": "claim",
       "label": "IRCC spending billions",
       "summary": "FY 2026-27: IRCC total $4,416,881,617; Immigrant and Refugee Selection and Integration $3,423,546,530."
+    },
+    {
+      "id": "org:nsira",
+      "type": "government",
+      "label": "NSIRA",
+      "full": "National Security and Intelligence Review Agency",
+      "summary": "Reviews the national security and intelligence work of federal bodies, including CSIS, and reports to the Prime Minister every year."
+    },
+    {
+      "id": "org:csis",
+      "type": "government",
+      "label": "CSIS",
+      "full": "Canadian Security Intelligence Service",
+      "summary": "Canada's spy agency. The CSIS Act sets what it may collect, keep and do."
+    },
+    {
+      "id": "org:federal-court",
+      "type": "government",
+      "label": "Federal Court",
+      "summary": "The court that issues the warrants CSIS works under."
+    },
+    {
+      "id": "org:public-safety",
+      "type": "government",
+      "label": "Public Safety Canada",
+      "summary": "The department and minister responsible for CSIS. The minister gives CSIS written directions (Ministerial Directions)."
+    },
+    {
+      "id": "org:justice",
+      "type": "government",
+      "label": "Justice Canada",
+      "full": "Department of Justice Canada",
+      "summary": "Gives CSIS its legal advice."
+    },
+    {
+      "id": "program:justification-framework",
+      "type": "program",
+      "label": "CSIS justification framework",
+      "summary": "Section 20.1 of the CSIS Act. Designated CSIS employees may commit, or direct others to commit, acts that would otherwise be offences, if they justify, authorize and report them as the Act requires."
+    },
+    {
+      "id": "dataset:nsira-reports",
+      "type": "dataset",
+      "label": "NSIRA reports in the archive",
+      "summary": "Seven NSIRA PDFs: the annual reports for 2019 to 2024, and Review 24-05 on CSIS's use of the justification framework (released under the Access to Information Act, with parts blacked out)."
     }
   ],
   "edges": [
@@ -1155,6 +1213,173 @@
         "loc": "p. 4",
         "quote": "Vesper Digital · Compiled 1 November 2026"
       }
+    },
+    {
+      "from": "org:federal-court",
+      "to": "org:csis",
+      "label": "2020 FC 616: activity CSIS conceded was illegal, and a breach of candour",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2021.pdf",
+        "loc": "2021 annual report, p. 3, para. 21",
+        "quote": "In a 2020 decision (2020 FC 616), the Federal Court recommended that a “comprehensive external review be initiated to fully identify systemic, governance and cultural shortcomings and failures that resulted in CSIS engaging in operational activity that it has conceded was illegal and the resultant breach of candour.”"
+      }
+    },
+    {
+      "from": "org:public-safety",
+      "to": "org:nsira",
+      "label": "The minister, with the Minister of Justice, sent the review to NSIRA",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2021.pdf",
+        "loc": "2021 annual report, p. 3, para. 21",
+        "quote": "Based on that recommendation, the Minister of Public Safety and Minister of Justice referred the review to NSIRA pursuant to paragraph 8(1)(c) of the NSIRA Act."
+      }
+    },
+    {
+      "from": "org:nsira",
+      "to": "org:justice",
+      "label": "Reviewed how CSIS gets legal advice from Justice and prepares warrants",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2021.pdf",
+        "loc": "2021 annual report, pp. 3-4, paras. 21-22",
+        "quote": "NSIRA therefore reviewed the manner in which CSIS seeks and receives legal services from the Department of Justice and prepares and executes the warrants it needs to collect information."
+      }
+    },
+    {
+      "from": "org:nsira",
+      "to": "org:csis",
+      "label": "Geolocation tool: a risk CSIS breached Charter section 8 while testing it",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2021.pdf",
+        "loc": "2021 annual report, p. 9, 'Reality of the risks' box (Vesper's slide cites p. 10)",
+        "quote": "NSIRA’s review of CSIS’s use of a geolocation tool found that the lack of “developed policies and procedures around the assessment of new and emerging collection technologies” directly contributed to the risk that CSIS had breached section 8 of the Canadian Charter of Rights and Freedoms while testing the tool. - NSIRA Study 2018-05"
+      }
+    },
+    {
+      "from": "org:nsira",
+      "to": "org:csis",
+      "label": "Threat reduction: some people chosen with no rational link to the threat",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NISRA 2020.pdf",
+        "loc": "2020 annual report, p. 19, para. 16",
+        "quote": "NSIRA also noted, however, that in a limited number of cases, CSIS selected individuals for inclusion in the TRM without a rational link between the selection of the individual and the threat. As a result, these measures were not “reasonable and proportional” as required under the CSIS Act."
+      }
+    },
+    {
+      "from": "org:csis",
+      "to": "org:public-safety",
+      "label": "Did not meet the minister's 2015 and 2019 directions in one case, NSIRA found",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NISRA 2022.pdf",
+        "loc": "2022 annual report, p. 7, para. 37",
+        "quote": "In one case, NSIRA found that CSIS did not meet its obligations under the 2015 Ministerial Direction for Operations and Accountability and the 2019 Ministerial Direction for Accountability issued by the Minister of Public Safety."
+      }
+    },
+    {
+      "from": "org:csis",
+      "to": "org:federal-court",
+      "label": "Did not fully tell the Court how it read the dataset rules, NSIRA found",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2023.pdf",
+        "loc": "2023 annual report, p. 50, Annex B, finding 3",
+        "url": "https://nsira-ossnr.gc.ca/en/reviews/ongoing-and-completed-reviews/completed-reviews/nsira-review-of-csis-dataset-regime/",
+        "quote": "NSIRA found that CSIS failed to fully apprise the Court on their interpretation and application of the dataset regime."
+      }
+    },
+    {
+      "from": "org:nsira",
+      "to": "org:csis",
+      "label": "Kept Canadians' information that should have been destroyed in July 2019",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2023.pdf",
+        "loc": "2023 annual report, p. 51, Annex B, finding 11",
+        "url": "https://nsira-ossnr.gc.ca/en/reviews/ongoing-and-completed-reviews/completed-reviews/nsira-review-of-csis-dataset-regime/",
+        "quote": "11. NSIRA found that CSIS did not comply with the dataset provisions in the CSIS Act because it retained Canadian information and referenced it as recently as 2022. This information should have been destroyed upon coming into force of the NSA 2017, in July 2019."
+      }
+    },
+    {
+      "from": "org:csis",
+      "to": "org:public-safety",
+      "label": "Used a new technology without consulting Public Safety first, NSIRA found",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2024.pdf",
+        "loc": "2024 annual report, p. 11, review 22-07, para. 46",
+        "quote": "CSIS did not consult with Public Safety Canada as required by the Ministerial Direction prior to using the novel technology under review. CSIS’s failure to consult may not have been in compliance with the CSIS Act. CSIS mischaracterized the novel technology as an extension of an existing CSIS technology and failed to inform Public Safety Canada in a timely manner."
+      }
+    },
+    {
+      "from": "org:csis",
+      "to": "org:federal-court",
+      "label": "Did not tell the Court about the new technology, NSIRA found",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2024.pdf",
+        "loc": "2024 annual report, p. 11, review 22-07, para. 46",
+        "quote": "CSIS did not advise the Federal Court of this novel technology."
+      }
+    },
+    {
+      "from": "org:nsira",
+      "to": "program:justification-framework",
+      "label": "Review 24-05: how CSIS used the framework",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2025.pdf",
+        "loc": "Review 24-05, cover",
+        "quote": "Review of the Canadian Security Intelligence Service's Use of the Justification Framework. NSIRA // Review 24-05"
+      }
+    },
+    {
+      "from": "org:csis",
+      "to": "program:justification-framework",
+      "label": "May not have complied with the CSIS Act: acts done without designation or sign-off, NSIRA found",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2025.pdf",
+        "loc": "Review 24-05, Annex B, printed pp. 17-18 (PDF pp. 21-22), findings 3 and 4",
+        "quote": "Finding 3. NSIRA found that CSIS may not have been in compliance with subsection 20.1(11) of the CSIS Act when [#] employees committed acts or omissions that would otherwise constitute offences while not designated by the Minister. Finding 4. NSIRA found that CSIS may not have been in compliance with subsections 20.1(12) and (15) of the CSIS Act when [#] employees directed acts or omissions that would otherwise constitute offences absent authorization from the Director or a designated senior employee."
+      }
+    },
+    {
+      "from": "org:csis",
+      "to": "org:nsira",
+      "label": "Did not notify NSIRA of all required reports, NSIRA found",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2025.pdf",
+        "loc": "Review 24-05, Annex B, printed pp. 17-18 (PDF pp. 21-22), finding 6",
+        "quote": "Finding 6. NSIRA found that CSIS may not have been in compliance with subsection 20.1(26)(c) of the CSIS Act when it did not notify NSIRA of all reports of commission or direction of acts or omissions that would otherwise constitute offences."
+      }
+    },
+    {
+      "from": "org:public-safety",
+      "to": "program:justification-framework",
+      "label": "Minister did not publish a yearly report for 2019 to 2022, NSIRA found",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2025.pdf",
+        "loc": "Review 24-05, Annex B, printed pp. 17-18 (PDF pp. 21-22), finding 7",
+        "quote": "Finding 7. NSIRA found that the Minister of Public Safety may not have been in compliance with subsection 20.1(24) of the CSIS Act when they did not annually publish or make available a report in respect of CSIS's use of the justification framework for 2019, 2020, 2021 or 2022."
+      }
+    },
+    {
+      "from": "org:vesper",
+      "to": "org:csis",
+      "label": "'CSIS Under Review': 25 points from NSIRA's findings, June 2025 to October 2026",
+      "kind": "stated",
+      "src": {
+        "doc": "@nsr/Files/CSIS_NSIRA.html",
+        "loc": "chapters 1 to 3",
+        "quote": "Chapter 1, The first warnings (June 2025). Chapter 2, Surveillance & data (May 2026). Chapter 3, The legal exception (October 2026)."
+      }
     }
   ],
   "events": [
@@ -1391,6 +1616,84 @@
         "doc": "@drn/Files/Canada_Turkiye_UN_Timeline_Linked.pdf",
         "loc": "p. 12",
         "url": "https://budget.canada.ca/2026/report-rapport/chap5-en.html"
+      }
+    },
+    {
+      "date": "2020-11-20",
+      "title": "NSIRA sends its 2019 annual report to the Prime Minister",
+      "case": "case:nsira",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NISRA 2019.pdf",
+        "loc": "cover letter"
+      },
+      "text": "NSIRA's first annual report."
+    },
+    {
+      "date": "2021-10-18",
+      "title": "NSIRA sends its 2020 annual report to the Prime Minister",
+      "case": "case:nsira",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NISRA 2020.pdf",
+        "loc": "cover letter"
+      },
+      "text": "Includes the threat reduction review: some people were chosen with no rational link to the threat."
+    },
+    {
+      "date": "2022-07-18",
+      "title": "NSIRA sends its 2021 annual report to the Prime Minister",
+      "case": "case:nsira",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2021.pdf",
+        "loc": "cover letter"
+      },
+      "text": "Includes Rebuilding Trust, the review sent to NSIRA after 2020 FC 616, and the geolocation tool finding."
+    },
+    {
+      "date": "2023-09-29",
+      "title": "NSIRA sends its 2022 annual report to the Prime Minister",
+      "case": "case:nsira",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NISRA 2022.pdf",
+        "loc": "cover letter"
+      }
+    },
+    {
+      "date": "2024-09-26",
+      "title": "NSIRA sends its 2023 annual report to the Prime Minister",
+      "case": "case:nsira",
+      "src": {
+        "doc": "@nsr/Files/NSIRA PDF's/NSIRA 2023.pdf",
+        "loc": "cover letter"
+      },
+      "text": "Includes the dataset review: CSIS kept Canadians' information that should have been destroyed."
+    },
+    {
+      "date": "2025-06-10",
+      "title": "Vesper posts 'The first warnings', chapter 1 of CSIS Under Review",
+      "case": "case:nsira",
+      "src": {
+        "doc": "@nsr/Files/CSIS_NSIRA.html",
+        "loc": "chapter 1"
+      }
+    },
+    {
+      "date": "2026-05-08",
+      "title": "Vesper posts 'Surveillance & data', chapter 2",
+      "text": "Ten points from NSIRA's annual reports for 2020 to 2024.",
+      "case": "case:nsira",
+      "src": {
+        "doc": "@nsr/Files/CSIS_NSIRA.html",
+        "loc": "chapter 2"
+      }
+    },
+    {
+      "date": "2026-10-14",
+      "title": "Vesper posts 'The legal exception', chapter 3",
+      "text": "Eight points from NSIRA Review 24-05 on CSIS's justification framework.",
+      "case": "case:nsira",
+      "src": {
+        "doc": "@nsr/Files/CSIS_NSIRA.html",
+        "loc": "chapter 3"
       }
     }
   ],

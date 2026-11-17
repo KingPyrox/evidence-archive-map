@@ -27,7 +27,7 @@ class DataContract(unittest.TestCase):
         cls.s, cls.g, cls.src = load("summary"), load("graph"), load("sources")
 
     def test_all_files_present(self):
-        for n in ["summary", "graph", "timeline", "lobbying", "ownership", "estimates", "survey", "sources"]:
+        for n in ["summary", "graph", "timeline", "lobbying", "ownership", "estimates", "survey", "public_accounts", "sources"]:
             self.assertTrue((DATA / f"{n}.json").is_file(), n)
 
     def test_graph_endpoints_and_enums(self):
@@ -78,6 +78,18 @@ class DataContract(unittest.TestCase):
         for r in sv["rows"]:
             if r["published_pct"] is not None:
                 self.assertEqual(round(r["weighted_pct"]), r["published_pct"], r["label"])
+
+    def test_public_accounts_totals_add_up(self):
+        pa = load("public_accounts")
+        for t in pa["tables"]:
+            for b in t["blocks"]:
+                if b["kind"] == "total":
+                    self.assertEqual(b["amount"], sum(p["amount"] or 0 for p in b["parts"]), (t["title"], b["row"]))
+                    for p in b["parts"]:
+                        if "items" in p:
+                            self.assertEqual(p["amount"], sum(i["amount"] or 0 for i in p["items"]), (t["title"], p["row"]))
+        self.assertEqual(pa["net_total"], sum(d["net"] for d in pa["departments"]))
+        self.assertTrue(any(a["same"] for a in pa["agree"]))
 
     def test_ownership_tree_counts(self):
         o = load("ownership")

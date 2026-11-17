@@ -57,6 +57,16 @@ const FINDINGS = [
       src: [{ url: own.url, name: fileName(own.file) }], href: '#/ownership', see: 'See who owns what',
     };
   },
+  ({ pa }) => {
+    const v1 = pa.tables.find((t) => /Vol1/.test(t.title));
+    const debt = v1.blocks.find((b) => b.kind === 'total' && b.name === 'Cost of servicing government debt');
+    const top = debt.parts.reduce((x, p) => (p.amount > x.amount ? p : x));
+    return {
+      num: moneyShort(debt.amount), per: perPerson(debt.amount),
+      text: `to pay the cost of the government's debt in 2025-26, from the ${term('public-accounts', 'Public Accounts')}. The biggest part, ${moneyShort(top.amount)}, is “${esc(top.name)}”.`,
+      src: [{ url: v1.url, name: fileName(v1.file) }], href: '#/accounts', see: 'See money in and out',
+    };
+  },
   ({ sv }) => {
     const answers = sv.rows.filter((r) => r.published_pct != null);
     const match = answers.filter((r) => Math.round(r.weighted_pct) === r.published_pct).length;
@@ -115,8 +125,8 @@ function wireGuess(root, own) {
 
 export async function render(root) {
   const [s, g] = await loadAll('summary', 'graph');
-  const [est, lob, own, sv] = await Promise.all(['estimates', 'lobbying', 'ownership', 'survey'].map(optional));
-  const data = { s, g, est, lob, own, sv };
+  const [est, lob, own, sv, pa] = await Promise.all(['estimates', 'lobbying', 'ownership', 'survey', 'public_accounts'].map(optional));
+  const data = { s, g, est, lob, own, sv, pa };
   const found = FINDINGS.map((f) => { try { return f(data); } catch { return null; } }).filter(Boolean);
   const c = s.counts;
   const evidenceEdges = g.edges.filter((e) => !e.layer).length;
@@ -187,6 +197,7 @@ export async function render(root) {
       <div class="stat"><b>${int(c.lobbying_records)}</b><span>lobbying records</span></div>
       <div class="stat"><b>${int(c.ownership_links)}</b><span>Brookfield ownership links</span></div>
       <div class="stat"><b>${int(c.estimate_rounds)}</b><span>government spending plans</span></div>
+      ${c.public_accounts_rows ? `<div class="stat"><b>${int(c.public_accounts_rows)}</b><span>Public Accounts rows</span></div>` : ''}
       <div class="stat"><b>${int(c.external_links)}</b><span>links to the original sources</span></div>
     </div>`;
   wireGuess(root, own);

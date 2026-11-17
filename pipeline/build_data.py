@@ -99,7 +99,7 @@ def read_csv(path):
 # ---------------------------------------------------------------- inventory
 CASE_BY_FOLDER = {}
 # The archive's own rule (tools/build_cases.py): every top-level folder except these is a case.
-NOT_CASES = {"assets", "tools", "node_modules", "docs", "Tables", "Gallery"}
+NOT_CASES = {"assets", "tools", "node_modules", "docs", "Tables", "Gallery", "s"}  # s/: share-link pages
 YOUTUBE = re.compile(r"(?:youtu\.be/|youtube\.com/(?:watch\?v=|live/|shorts/|embed/))([A-Za-z0-9_-]{6,})")
 
 
@@ -541,6 +541,127 @@ def survey(src):
             "tally": tally, "tally_total": tally_total}
 
 
+# ---------------------------------------------------------------- public accounts
+# Vesper's money tables: Tables/*.xlsx whose header row is "What the money covers". A "CALCULATED TOTAL ·" row is a sum
+# Vesper worked out; the rows under it are what it adds up, and a bold shaded row among them is a subtotal with its own
+# rows. "SOURCE GROUP ·" rows only head a list of published entries of one money type and state no total. A "RELATED
+# REPORT ·" row is a figure from another source table, not added in. Rows that fit none of these are figures on their own.
+MONEY_HEAD = "What the money covers"
+MARKS = {"CALCULATED TOTAL · ": "total", "SOURCE GROUP · ": "group", "RELATED REPORT · ": "related"}
+STD_OBJ = re.compile(r"^std_obj\d+_")  # Vol II's 12 "standard objects": the kinds of cost every department reports
+OFFSETS = ("internal_revenues_", "external_revenues_")  # revenues Vol II takes off departmental spending
+NET_GROUP = "ttl_min_net_exp_"  # Vol II's published "departmental spending after offsets" entries
+
+
+def money_table(src, rel):
+    ws = openpyxl.load_workbook(src / rel).worksheets[0]
+    head = next((r for r in range(1, 30) if str(ws.cell(r, 1).value or "").strip() == MONEY_HEAD), None)
+    if head is None:
+        return None
+    about = [" ".join(str(ws.cell(r, 1).value).split()) for r in range(1, head) if ws.cell(r, 1).value]
+    blocks, block, sub, links, rows = [], None, None, Counter(), 0
+    for r in ws.iter_rows(min_row=head + 1, max_col=5):
+        if r[0].value is None:
+            continue
+        label, mark = str(r[0].value).strip(), None
+        for m, k in MARKS.items():
+            while label.startswith(m):
+                label, mark = label[len(m):], k
+        rows += 1
+        a = r[2].value
+        link = next((c.hyperlink.target for c in r if c.hyperlink and c.hyperlink.target), None)
+        links[link] += 1
+        x = {"row": r[0].row, "name": label, "amount": round(a) if isinstance(a, (int, float)) else None,
+             "type": r[1].value, "year": r[3].value, "wording": str(r[4].value or "").strip(), "url": link}
+        fill = str(r[0].fill.fgColor.rgb or "").upper() if r[0].fill and isinstance(r[0].fill.fgColor.rgb, str) else ""
+        in_total = block is not None and block["kind"] == "total"
+        if mark in ("total", "group"):
+            block, sub = dict(x, kind=mark, parts=[], related=[]), None
+            blocks.append(block)
+        elif mark == "related" and block:
+            block["related"].append(x)
+        elif in_total and r[0].font.b and fill not in ("", "FFFFFFFF", "00000000"):
+            sub = dict(x, items=[])
+            block["parts"].append(sub)
+        elif in_total and sub and x["wording"].endswith(" · " + sub["wording"]):
+            sub["items"].append(x)
+        elif in_total and (x["wording"] == block["wording"] or x["wording"].startswith(block["wording"] + " · ")):
+            sub = None
+            block["parts"].append(x)
+        elif block and block["kind"] == "group" and x["type"] == block["type"]:
+            block["parts"].append(x)
+        else:
+            block, sub = None, None
+            blocks.append(dict(x, kind="figure", parts=[], related=[]))
+    # Every total is checked against the rows under it, and every subtotal against its own rows.
+    bad = []
+    for b in blocks:
+        if b["kind"] != "total":
+            continue
+        for x, kids in [(b, b["parts"])] + [(s, s["items"]) for s in b["parts"] if "items" in s]:
+            x["sum"] = sum(k["amount"] or 0 for k in kids)
+            if x["amount"] != x["sum"]:
+                bad.append(f"row {x['row']} {x['name']}: {x['amount']} vs {x['sum']}")
+    # Rows repeat their block's link, money type, year and wording; keep a field only where a row differs.
+    source = links.most_common(1)[0][0]
+    for b in blocks:
+        if b["url"] == source:
+            b.pop("url")
+        for x in b["parts"] + b["related"] + [i for s in b["parts"] for i in s.get("items", [])]:
+            for k in ("url", "type", "year"):
+                if x.get(k) == (source if k == "url" else b[k]):
+                    x.pop(k)
+    title = Path(rel).stem
+    check(f"Public Accounts: every calculated total in '{title}' equals the rows under it", [], bad)
+    return {"file": rel, "url": gh(rel), "title": title, "about": about, "source": source, "rows": rows, "blocks": blocks}
+
+
+def public_accounts(src):
+    tables = [t for t in (money_table(src, p.relative_to(src).as_posix()) for p in sorted((src / "Tables").glob("*.xlsx"))) if t]
+    if not tables:
+        raise FileNotFoundError("no Public Accounts tables (header 'What the money covers') in Tables/")
+    totals = [(t, b) for t in tables for b in t["blocks"] if b["kind"] == "total"]
+    # The same total (name, money type, year) listed twice: do the two lists agree, row for row?
+    agree = []
+    for i, (t1, b1) in enumerate(totals):
+        for t2, b2 in totals[i + 1:]:
+            if (b1["name"], b1["type"], b1["year"]) == (b2["name"], b2["type"], b2["year"]):
+                rows = lambda b: sorted((p["name"], p["amount"]) for p in b["parts"])  # noqa: E731
+                same = b1["amount"] == b2["amount"] and rows(b1) == rows(b2)
+                agree.append({"name": b1["name"], "amount": b1["amount"], "rows": len(b1["parts"]), "same": same,
+                              "a": {"table": t1["title"], "row": b1["row"], "wording": b1["wording"]},
+                              "b": {"table": t2["title"], "row": b2["row"], "wording": b2["wording"]}})
+                check(f"Public Accounts: '{b1['name']}' in '{t1['title']}' row {b1['row']} = '{t2['title']}' row {b2['row']}", True, same)
+    # A related figure, given to the million, is looked for among the rows of a same-named total in another table.
+    for t, b in totals:
+        for r in b["related"]:
+            r["matches"] = [{"table": t2["title"], "row": p["row"], "name": p["name"], "amount": p["amount"], "wording": b2["wording"]}
+                            for t2, b2 in totals if t2 is not t and b2["name"] == b["name"] for p in b2["parts"]
+                            if p["amount"] is not None and round(p["amount"], -6) == r["amount"]]
+            check(f"Public Accounts: related figure in '{t['title']}' row {r['row']} is a row of '{b['name']}' in another table", True, bool(r["matches"]))
+    # Departments: their 12 kinds of cost added up, then the revenues Vol II takes off.
+    std = [b for _, b in totals if STD_OBJ.match(b["wording"])]
+    off = [b for _, b in totals if b["wording"].startswith(OFFSETS)]
+    dept = defaultdict(lambda: {"gross": 0, "offsets": 0, "costs": {}})
+    for b in std:
+        for p in b["parts"]:
+            dept[p["name"]]["gross"] += p["amount"]
+            dept[p["name"]]["costs"][b["name"]] = p["amount"]
+    for b in off:
+        for p in b["parts"]:
+            dept[p["name"]]["offsets"] += p["amount"]
+    departments = sorted(({"name": k, **v, "net": v["gross"] - v["offsets"]} for k, v in dept.items()), key=lambda d: -d["net"])
+    net = next((b for t in tables for b in t["blocks"] if b["kind"] == "group" and b["wording"].startswith(NET_GROUP)), None)
+    if std:
+        check("Public Accounts: Vol II's published 'spending after offsets' entries = the 12 calculated cost totals and the 2 revenue offsets",
+              sorted([b["amount"] for b in std] + [-b["amount"] for b in off]), sorted(p["amount"] for p in net["parts"]) if net else None)
+        check("Public Accounts: departments' spending after offsets adds up to the published entries",
+              sum(p["amount"] for p in net["parts"]) if net else None, sum(d["net"] for d in departments))
+    return {"tables": tables, "agree": agree, "departments": departments,
+            "kinds_of_cost": [b["name"] for b in sorted(std, key=lambda b: -b["amount"])], "offsets": [b["name"] for b in off],
+            "net_total": sum(p["amount"] for p in net["parts"]) if net else None}
+
+
 # ---------------------------------------------------------------- graph
 def expand(doc, folders):
     if doc and doc.startswith("@"):
@@ -697,6 +818,7 @@ def main():
         return est
     est = section("estimates", out, spending)
     srv = section("survey", out, lambda: survey(src))
+    pa = section("public_accounts", out, lambda: public_accounts(src))
     graph = build_graph(cur, lob, files)
     tl = timeline(cur, lob, videos, files)
     links = pdf_links(src)
@@ -714,9 +836,10 @@ def main():
                            "lobbying_tables": [d["id"] for d in lob["datasets"] if d.get("auto")]},
         "counts": {"files": len(files), "nodes": len(graph["nodes"]), "edges": len(graph["edges"]), "events": len(tl),
                    "lobbying_records": len(lob["records"]), "ownership_links": own["stats"]["links"], "estimate_rounds": len(est["rounds"]),
-                   "external_links": len({l["url"] for l in links}), "survey_records": srv["records"]},
+                   "external_links": len({l["url"] for l in links}), "survey_records": srv["records"],
+                   "public_accounts_rows": sum(t["rows"] for t in pa["tables"])},
     }
-    payload = {"summary": summary, "graph": graph, "timeline": tl, "lobbying": lob, "ownership": own, "estimates": est, "survey": srv,
+    payload = {"summary": summary, "graph": graph, "timeline": tl, "lobbying": lob, "ownership": own, "estimates": est, "survey": srv, "public_accounts": pa,
                "sources": {"files": files, "pdf_links": links}}
     for name, data in payload.items():
         (out / f"{name}.json").write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":"), default=sorted), encoding="utf-8")
