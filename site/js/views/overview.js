@@ -197,7 +197,7 @@ export async function render(root) {
       <div class="stat"><b>${int(c.lobbying_records)}</b><span>lobbying records</span></div>
       <div class="stat"><b>${int(c.ownership_links)}</b><span>Brookfield ownership links</span></div>
       <div class="stat"><b>${int(c.estimate_rounds)}</b><span>government spending plans</span></div>
-      ${c.public_accounts_rows ? `<div class="stat"><b>${int(c.public_accounts_rows)}</b><span>Public Accounts rows</span></div>` : ''}
+      ${c.public_accounts_records ? `<div class="stat"><b>${int(c.public_accounts_records)}</b><span>Public Accounts records</span></div>` : ''}
       <div class="stat"><b>${int(c.external_links)}</b><span>links to the original sources</span></div>
     </div>`;
   wireGuess(root, own);

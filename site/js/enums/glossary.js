@@ -25,5 +25,6 @@ export const GLOSSARY = {
   'public-accounts': { word: 'Public Accounts', means: "The government's audited books for one money year. Volume I is the whole government's statements; Volume II shows each department." },
   'kind-of-cost': { word: 'Kind of cost', means: "What the money was spent on, such as staff pay, rent or equipment. Volume II sorts every department's spending into the same 12 kinds (the government calls them standard objects)." },
   claims: { word: 'Claims against the Crown', means: 'Money the government paid to settle lawsuits and other claims made against it. Volume III of the Public Accounts lists each payment.' },
+  deficit: { word: 'Deficit', means: 'How much more the government spent in a year than it took in. The accumulated deficit is all the yearly gaps added up over time.' },
   statutory: { word: 'Statutory spending', means: 'Spending that a law already allows, so Parliament does not vote on it each year. Interest on the debt is one example.' },
 };

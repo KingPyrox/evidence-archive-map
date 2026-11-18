@@ -56,7 +56,8 @@ export function namedBars(c, names, { bar = 14, right = 70, head = 0 } = {}) {
   c.fitNames = () => { const g = fit(); c.setOption({ grid: { top: g.top }, yAxis: { axisLabel: { width: g.width } } }); };
   return {
     grid: { left: 2, right, top: f.top, bottom: 4, containLabel: false },
-    xAxis: { type: 'value', show: false },
+    // a "nice" rounded minimum would put zero far from the names when one value is a little below zero
+    xAxis: { type: 'value', show: false, min: (v) => Math.min(0, v.min) },
     yAxis: {
       type: 'category', inverse: true, data: names, axisTick: { show: false }, axisLine: { show: false },
       axisLabel: { inside: true, interval: 0, align: 'left', verticalAlign: 'bottom', padding: [0, 0, bar / 2 + 3, 0], width: f.width, overflow: 'break', lineHeight: 15, color: '#1c1f24' },

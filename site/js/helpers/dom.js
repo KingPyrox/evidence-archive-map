@@ -63,6 +63,9 @@ export function table(cols, rows, { empty = 'Nothing to show.', limit = 0, cls =
   return `<div class="table-wrap${cls ? ` ${cls}` : ''}"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${showAll(rows.length, limit)}`;
 }
 
+// Rows folded under a one-line summary, so the page reads as charts first and every row stays one click away.
+export const fold = (summary, html) => `<details class="fold"><summary>${summary}</summary>${html}</details>`;
+
 export const options = (items, selected) => items.map(([v, label]) => `<option value="${esc(v)}"${v === selected ? ' selected' : ''}>${esc(label)}</option>`).join('');
 
 export function setParams(params) {

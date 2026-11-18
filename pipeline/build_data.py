@@ -559,7 +559,7 @@ def money_table(src, rel):
     if head is None:
         return None
     about = [" ".join(str(ws.cell(r, 1).value).split()) for r in range(1, head) if ws.cell(r, 1).value]
-    blocks, block, sub, links, rows = [], None, None, Counter(), 0
+    blocks, block, sub, links, rows, after_related = [], None, None, Counter(), 0, False
     for r in ws.iter_rows(min_row=head + 1, max_col=5):
         if r[0].value is None:
             continue
@@ -576,9 +576,12 @@ def money_table(src, rel):
         fill = str(r[0].fill.fgColor.rgb or "").upper() if r[0].fill and isinstance(r[0].fill.fgColor.rgb, str) else ""
         in_total = block is not None and block["kind"] == "total"
         if mark in ("total", "group"):
-            block, sub = dict(x, kind=mark, parts=[], related=[]), None
+            block, sub, after_related = dict(x, kind=mark, parts=[], related=[]), None, False
             blocks.append(block)
         elif mark == "related" and block:
+            block["related"].append(x)
+            after_related = True
+        elif after_related and block:  # the rows under a related report belong to it, not to the total
             block["related"].append(x)
         elif in_total and r[0].font.b and fill not in ("", "FFFFFFFF", "00000000"):
             sub = dict(x, items=[])
@@ -613,11 +616,52 @@ def money_table(src, rel):
                     x.pop(k)
     title = Path(rel).stem
     check(f"Public Accounts: every calculated total in '{title}' equals the rows under it", [], bad)
-    return {"file": rel, "url": gh(rel), "title": title, "about": about, "source": source, "rows": rows, "blocks": blocks}
+    return {"file": rel, "url": gh(rel), "title": title, "about": about, "record_count": records_in(about), "source": source, "rows": rows, "blocks": blocks}
 
 
 # Vesper's lists of single payments (Volume III, such as Claims Against the Crown): one row per payment, no totals.
 RECORD_HEAD = ("Date", "Amount (CAD)", "Subject / Record", "Department / Organization", "Reference")
+
+
+def records_in(about):
+    """The record count Vesper's export states ('... • 95 matching records • ...'). A record can fill several rows."""
+    m = next((re.search(r"([\d,]+) matching records", a) for a in about if "matching records" in a), None)
+    return int(m.group(1).replace(",", "")) if m else None
+
+
+# Volume I's bottom line, found by the government wording on each row. Two rows are signed by their effect on the
+# balance, as in the government's file: net actuarial losses (-13,640 is a loss of 13,640) and the accumulated deficit.
+# Checked: revenues - expenses + net actuarial losses gives the published deficits of 2023-24 (61.9B) and 2024-25 (36.3B).
+ACTUARIAL, DEFICIT = "Net actuarial losses", "Accumulated operating deficit"
+# Volume II's reconciliation of department spending to Volume I's expenses. Internal expenses are charges between
+# government bodies; the government removes them, so they are taken off.
+BRIDGE = [("xpns_cc_other_ents", 1), ("internal_expenses_charges", -1), ("int_rev_against_exps", 1),
+          ("cons_special_accnts", 1), ("tax_credits_and_repay", 1), ("accrual_and_other_adjs", 1)]
+
+
+def bottom_line(v1, v2):
+    rows = [b for b in v1["blocks"] if b["kind"] in ("total", "figure")] + [p for b in v1["blocks"] if b["kind"] == "group" for p in b["parts"]]
+    pick = lambda pre: [{"name": r["name"], "amount": r["amount"], "wording": r.get("wording") or ""} for r in rows  # noqa: E731
+                        if (r.get("wording") or "").startswith(pre)]
+    money_in, out, act, start = pick("Revenues"), pick("Expenses"), pick(ACTUARIAL), pick(DEFICIT)
+    if not (money_in and out and len(act) == 1 and len(start) == 1):
+        return None
+    out = out + [{**act[0], "amount": -act[0]["amount"]}]  # shown as the cost it is
+    total_in, total_out = sum(r["amount"] for r in money_in), sum(r["amount"] for r in out)
+    line = {"in": money_in, "out": out, "total_in": total_in, "total_out": total_out, "result": total_in - total_out,
+            "start_deficit": -start[0]["amount"], "start_wording": start[0]["wording"]}
+    if v2:
+        groups = {b["wording"]: b for b in v2["blocks"] if b["kind"] == "group"}
+        net = next((b for w, b in groups.items() if w.startswith(NET_GROUP)), None)
+        steps = [{"name": b["name"], "sign": sign, "amount": sign * sum(p["amount"] or 0 for p in b["parts"])}
+                 for pre, sign in BRIDGE for w, b in groups.items() if w.startswith(pre)]
+        if net and len(steps) == len(BRIDGE):
+            start_v2 = sum(p["amount"] for p in net["parts"])
+            end = start_v2 + sum(s["amount"] for s in steps)
+            line["bridge"] = {"start": start_v2, "steps": steps, "end": end}
+            check("Public Accounts: Vol II department spending plus the government's adjustments = Vol I expenses (to the million)",
+                  round(total_out / 1e6), round(end / 1e6))
+    return line
 
 
 def record_table(src, rel):
@@ -650,13 +694,68 @@ def record_table(src, rel):
     exported = int(num(about.get("RECORDS EXPORTED")) or 0)
     title = Path(rel).stem
     check(f"Public Accounts: '{title}' has every record its export says ({exported})", exported, len(recs))
-    by = defaultdict(lambda: {"count": 0, "amount": 0})
+    # A row that names no payee comes out of the export as "<list name> — <department>", which reads like a payee. In
+    # the government's file most such rows are one department's payments under $1,000 added together.
+    name = re.sub(r"^.*\d{4}-", "", title)
+    for x in recs:
+        if x["who"] == f"{name} — {x['dept']}":
+            x["who"], x["no_payee"] = "", True
+    no_payee = Counter(x["dept"] for x in recs if x.get("no_payee"))
+    check(f"Public Accounts: '{title}' has at most one no-payee entry per department", 0, sum(n > 1 for n in no_payee.values()))
+    by = defaultdict(lambda: {"count": 0, "amount": 0, "no_payee": 0})
     for x in recs:
         by[x["dept"]]["count"] += 1
         by[x["dept"]]["amount"] += x["amount"]
+        by[x["dept"]]["no_payee"] += x["amount"] if x.get("no_payee") else 0
     return {"file": rel, "url": gh(rel), "title": title, "about": [f"{k} {v}".strip() for k, v in about.items()], "source": source,
-            "date": common["date"], "ref": common["ref"], "rows": len(recs), "total": round(sum(x["amount"] for x in recs), 2), "records": recs,
-            "by_dept": sorted(({"name": k, "count": v["count"], "amount": round(v["amount"], 2)} for k, v in by.items()), key=lambda d: -d["amount"])}
+            "date": common["date"], "ref": common["ref"], "record_count": exported, "rows": len(recs), "total": round(sum(x["amount"] for x in recs), 2), "records": recs,
+            "no_payee": sum(no_payee.values()),
+            "by_dept": sorted(({"name": k, "count": v["count"], "amount": round(v["amount"], 2)} | ({"no_payee_amount": round(v["no_payee"], 2)} if v["no_payee"] else {})
+                               for k, v in by.items()), key=lambda d: -d["amount"])}
+
+
+DEBT = "Cost of servicing government debt"
+
+
+def debt_history(src, v1):
+    """Vesper's year-by-year debt tables: zips in Tables/ of money tables, one per year, each with a debt total."""
+    years = []
+    for z in sorted((src / "Tables").glob("*.zip")):
+        rel = z.relative_to(src).as_posix()
+        with zipfile.ZipFile(z) as zf, tempfile.TemporaryDirectory() as td:
+            for m in sorted(n for n in zf.namelist() if n.lower().endswith(".xlsx")):
+                zf.extract(m, td)
+                t = money_table(Path(td), m)
+                b = next((b for b in t["blocks"] if b["kind"] == "total" and b["name"] == DEBT), None) if t else None
+                if b:
+                    # Most years also carry the government's own figure for the total, from its statement of operations.
+                    pub = next((r["amount"] for r in b["related"] if r["name"].lower().endswith(" · " + DEBT.lower())), None)
+                    years.append({"year": b["year"], "amount": b["amount"], "published": pub, "file": rel, "member": Path(m).name,
+                                  "source": t["source"], "parts": [{"name": p["name"], "amount": p["amount"]} for p in b["parts"]]})
+    if not years:
+        return None
+    years.sort(key=lambda y: y["year"])
+    start = [int(y["year"][:4]) for y in years]
+    span, gaps = start[-1] - start[0] + 1, sorted(set(range(start[0], start[-1] + 1)) - set(start))
+    check("Public Accounts: the debt history has one table for each year, with no gaps or repeats", f"{span} tables for {span} years",
+          f"{len(start)} tables for {len(set(start))} years", f"Missing: {gaps}" if gaps else "")
+    # In 3 years the government's open-data rows give the "consolidation adjustments" row a + sign where every other year
+    # has -, so the rows add up to twice that row more than the government's own total. The rows match the government's
+    # file (checked against its revenuesdeficit CSVs), so the published total is the one to show for that year.
+    pub, slips = [y for y in years if y["published"] is not None], []
+    for y in pub:
+        adj = next((p["amount"] for p in y["parts"] if p["name"] == "Adjustments when combining government accounts"), 0)
+        y["sign_slip"] = y["amount"] != y["published"] and y["amount"] - y["published"] == 2 * adj
+        slips += [y["year"]] if y["sign_slip"] else []
+    ok = sum(y["amount"] == y["published"] or y["sign_slip"] for y in pub)
+    check("Public Accounts: each year's debt total, added up from its rows, = the government's own figure in the same file (or differs "
+          "only by the sign of the adjustment row)", f"{len(pub)} of {len(pub)}", f"{ok} of {len(pub)}",
+          ("Adjustment row has the wrong sign in the government's file: " + ", ".join(slips)) if slips else "")
+    now = next((b for b in v1["blocks"] if b["kind"] == "total" and b["name"] == DEBT), None) if v1 else None
+    if now:
+        last = next((y for y in years if y["year"] == now["year"]), None)
+        check(f"Public Accounts: the debt history's {now['year']} total = the Volume I total", now["amount"], last["amount"] if last else None)
+    return {"file": years[0]["file"], "url": gh(years[0]["file"]), "years": years}
 
 
 def public_accounts(src):
@@ -706,7 +805,11 @@ def public_accounts(src):
               "Published entries that equal a calculated total, out of all published entries.")
         check("Public Accounts: departments' spending after offsets adds up to the published entries",
               sum(p["amount"] for p in net["parts"]) if net else None, sum(d["net"] for d in departments))
+    v1 = next((t for t in tables if "Vol1" in t["title"]), None)
+    v2 = next((t for t in tables if "Vol2" in t["title"]), None)
     return {"tables": tables, "lists": lists, "agree": agree, "departments": departments,
+            "bottom_line": bottom_line(v1, v2) if v1 else None,
+            "debt_history": debt_history(src, v1),
             "kinds_of_cost": [b["name"] for b in sorted(std, key=lambda b: -b["amount"])], "offsets": [b["name"] for b in off],
             "net_total": sum(p["amount"] for p in net["parts"]) if net else None}
 
@@ -886,7 +989,7 @@ def main():
         "counts": {"files": len(files), "nodes": len(graph["nodes"]), "edges": len(graph["edges"]), "events": len(tl),
                    "lobbying_records": len(lob["records"]), "ownership_links": own["stats"]["links"], "estimate_rounds": len(est["rounds"]),
                    "external_links": len({l["url"] for l in links}), "survey_records": srv["records"],
-                   "public_accounts_rows": sum(t["rows"] for t in pa["tables"] + pa.get("lists", []))},
+                   "public_accounts_records": sum(t["record_count"] or 0 for t in pa["tables"] + pa.get("lists", []))},
     }
     payload = {"summary": summary, "graph": graph, "timeline": tl, "lobbying": lob, "ownership": own, "estimates": est, "survey": srv, "public_accounts": pa,
                "sources": {"files": files, "pdf_links": links}}
