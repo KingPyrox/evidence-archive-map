@@ -29,6 +29,12 @@ async function route() {
     const on = a.dataset.route === (ROUTES[path] ? path : '');
     a.classList.toggle('active', on);
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    // phones swipe the menu sideways: bring the current page's link into view
+    const nav = a.closest('nav');
+    if (on && nav.scrollWidth > nav.clientWidth) {
+      const ar = a.getBoundingClientRect(); const nr = nav.getBoundingClientRect();
+      if (ar.left < nr.left || ar.right > nr.right) nav.scrollLeft += ar.left - nr.left - 12;
+    }
   });
   try {
     await view.render(root, params);
