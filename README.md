@@ -18,6 +18,7 @@ files that is labelled as one. Every connection links back to its file on GitHub
 | Connection map | Network of people, bodies, companies, programs, datasets and claims. Click a dot to see its sourced connections. Filter by case or layer. A list view is also available. |
 | Money flows | Every dollar figure in the evidence, IRCC grants to IOM and UNHCR, and Sankey charts of money moved between federal departments (Estimates, 2019-20 to 2021-22) |
 | Federal spending | Any department across all 22 recovered Estimates rounds, the top 20 departments per round, and which rounds had no Open Government catalogue record |
+| AI grants | Every Grants & Contributions export in `Tables/` (2,516 rows of federal grants matching "AI" at launch): totals by department, month, recipient and program, rows that repeat one government record counted once or every time, and a searchable table linked to each government record |
 | Lobbying | Every Lobbying Registry table in the archive (105 records in 4 tables at launch), filterable by client, institution and text |
 | Corporate ownership | Brookfield Corporation's 1,100-link ownership tree, searchable, with the path to any company |
 | Timeline | Every dated item: events in the evidence, lobbying records, videos and case publication dates |
@@ -51,6 +52,7 @@ site/data/*.json  ──►  static site (site/)  ──►  GitHub Pages
 | A file the site already reads is edited | Rebuilt from the new file. |
 | A new top-level case folder (same rule as the archive's `tools/build_cases.py`) | Gets a case card, its file list and a timeline entry, marked "New: not mapped yet". Connections are added by hand in `curated.json`. |
 | A new table that `assets/tables.json` tags `LOBBYING REGISTRY` | Charted on the Lobbying page, the map and the timeline, with a generated name and colour. |
+| A new spreadsheet in `Tables/` with the Grants & Contributions header (Date, Amount (CAD), Recipient, Department, Purpose, Program, End Date, Source URL) | Charted on the AI grants page, with its own counts and checks. |
 | A file the pipeline reads is moved to another folder | Found by its file name. A check on the site names the new path. |
 | A file is renamed, removed or changes layout | Only that section keeps its last good copy (from the live site). A failed check on the site says which section and why. Map links that cite the file are hidden until `curated.json` is updated. |
 

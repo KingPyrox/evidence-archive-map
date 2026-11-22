@@ -7,6 +7,7 @@ import * as map from './views/map.js';
 import * as money from './views/money.js';
 import * as spending from './views/spending.js';
 import * as accounts from './views/accounts.js';
+import * as grants from './views/grants.js';
 import * as lobbying from './views/lobbying.js';
 import * as ownership from './views/ownership.js';
 import * as timeline from './views/timeline.js';
@@ -15,7 +16,7 @@ import * as sources from './views/sources.js';
 import * as about from './views/about.js';
 import * as search from './views/search.js';
 
-const ROUTES = { '': overview, map, money, spending, accounts, lobbying, ownership, timeline, survey, sources, about, search };
+const ROUTES = { '': overview, map, money, spending, accounts, grants, lobbying, ownership, timeline, survey, sources, about, search };
 const root = document.getElementById('app');
 let lastPath = null;
 

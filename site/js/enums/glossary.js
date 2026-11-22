@@ -13,6 +13,7 @@ export const GLOSSARY = {
   department: { word: 'Department', means: 'A part of the federal government with its own job and budget, such as Health Canada.' },
   transfer: { word: 'Transfer between departments', means: "Money moved from one department's budget to another's. The archive says this table stopped being published after 2021-22." },
   grant: { word: 'Grant', means: 'Money the government gives to a group or person for a goal. The government does not buy anything with it.' },
+  contribution: { word: 'Contribution', means: 'Like a grant, but with conditions: the one who gets it must do what was agreed and report back. Some contributions have to be paid back.' },
   ircc: { word: 'IRCC', means: 'Immigration, Refugees and Citizenship Canada: the federal department in charge of immigration.' },
   'un-agency': { word: 'UN agency', means: 'A group that is part of the United Nations. IOM (International Organization for Migration) helps migrants. UNHCR (the UN Refugee Agency) helps refugees.' },
   catalogue: { word: 'Open data website', means: 'open.canada.ca, where the government lists the data it publishes so anyone can find it.' },

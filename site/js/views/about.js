@@ -44,7 +44,8 @@ export async function render(root) {
     <h2>How the data is made</h2>
     <ol>
       <li><b>Automatic extraction.</b> A build script reads the spreadsheets, PDFs, 7-Zip and zip files in Vesper's archive:
-        the Lobbying Registry tables, the Brookfield ownership table, every Estimates CSV and the survey file.</li>
+        the Lobbying Registry tables, the Brookfield ownership table, every Estimates CSV, the Public Accounts and AI grants
+        tables, and the survey file.</li>
       <li><b>Hand transcription.</b> Slides and images can't be read automatically. Facts from them are typed in by hand with
         the file and slide number, and quoted word for word.</li>
       <li><b>Checks.</b> The build cross-checks totals, row counts and published figures, and reports any difference it finds

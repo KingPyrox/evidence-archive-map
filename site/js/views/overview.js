@@ -49,6 +49,15 @@ const FINDINGS = [
       src: lob.datasets.map((d) => ({ url: d.url, name: fileName(d.file) })), href: '#/lobbying', see: 'See the records',
     };
   },
+  ({ s }) => {
+    const t = s.grants?.[0];
+    if (!t) return null;
+    return {
+      num: moneyShort(t.total_once), per: perPerson(t.total_once),
+      text: `in federal ${term('grant', 'grants')} and ${term('contribution', 'contributions')} in records that match “${esc(t.query)}”, dated ${esc(date(t.first))} to ${esc(date(t.last))}. That counts each of the ${int(t.records)} government records once. ${esc(t.top_dept.name)} gave the most: ${moneyShort(t.top_dept.amount)}.`,
+      src: [{ url: t.url, name: fileName(t.file) }], href: '#/grants', see: 'See who got the money',
+    };
+  },
   ({ own }) => {
     const st = own.stats;
     return {
@@ -198,6 +207,7 @@ export async function render(root) {
       <div class="stat"><b>${int(c.ownership_links)}</b><span>Brookfield ownership links</span></div>
       <div class="stat"><b>${int(c.estimate_rounds)}</b><span>government spending plans</span></div>
       ${c.public_accounts_records ? `<div class="stat"><b>${int(c.public_accounts_records)}</b><span>Public Accounts records</span></div>` : ''}
+      ${c.grant_rows ? `<div class="stat"><b>${int(c.grant_rows)}</b><span>rows of AI grants</span></div>` : ''}
       <div class="stat"><b>${int(c.external_links)}</b><span>links to the original sources</span></div>
     </div>`;
   wireGuess(root, own);

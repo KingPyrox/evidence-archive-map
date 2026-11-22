@@ -43,7 +43,7 @@ blockquote { margin: .4rem 0 0; padding: .4rem .8rem; border-left: 3px solid var
    hiding links off the edge; phones keep one row that swipes sideways, so the header stays short. */
 nav.main-nav { max-width: 1280px; margin: 0 auto; padding: .2rem .7rem .6rem; display: flex; flex-wrap: wrap; align-items: center; gap: .1rem; }
 nav.main-nav .nav-sec { display: flex; flex-wrap: wrap; align-items: center; gap: .1rem; }
-nav.main-nav a { color: #c3cad5; text-decoration: none; padding: .4rem .5rem; border-radius: 8px; white-space: nowrap; font-size: .9rem; }
+nav.main-nav a { color: #c3cad5; text-decoration: none; padding: .4rem .35rem; border-radius: 8px; white-space: nowrap; font-size: .9rem; }
 @media (max-width: 700px) {
   nav.main-nav, nav.main-nav .nav-sec { flex-wrap: nowrap; }
   nav.main-nav { overflow-x: auto; scrollbar-width: thin; }
@@ -96,6 +96,9 @@ input[type=search] { min-width: min(240px, 100%); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); margin-bottom: 1rem; }
 .table-wrap:last-child, .table-wrap:has(+ .show-all) { margin-bottom: 0; }
 .table-wrap.narrow { max-width: 40rem; }
+/* AI grants table: dates stay on one line and the purpose keeps a readable width on phones (the table scrolls) */
+.table-wrap.grants td:first-child, .table-wrap.grants td:nth-child(5) { white-space: nowrap; }
+.table-wrap.grants .purpose { display: block; min-width: 16rem; }
 table { border-collapse: collapse; width: 100%; font-size: .9rem; }
 th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { background: #f9fafb; color: #475467; font-weight: 600; position: sticky; top: 0; z-index: 1; }

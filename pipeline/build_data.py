@@ -814,6 +814,109 @@ def public_accounts(src):
             "net_total": sum(p["amount"] for p in net["parts"]) if net else None}
 
 
+# ---------------------------------------------------------------- grants and contributions
+# Vesper's exports of the federal Grants & Contributions search: one row per government record, and the full purpose
+# on a second sheet that the Purpose cell links to.
+GRANT_HEAD = ("Date", "Amount (CAD)", "Recipient", "Department", "Purpose", "Program", "End Date", "Source URL")
+GRANT_RECORD = re.compile(r"^https://search\.open\.canada\.ca/grants/record/(.+),current$")
+
+
+def grant_table(wb, rel, n):
+    ws = wb.worksheets[0]
+    head = next((r for r in range(1, 30) if tuple(str(ws.cell(r, c).value or "").strip() for c in range(1, 9)) == GRANT_HEAD), None)
+    if head is None:
+        return None
+    about, lines = {}, []
+    for r in range(1, head):
+        cells = [" ".join(str(ws.cell(r, c).value).split()) for c in range(1, 3) if str(ws.cell(r, c).value or "").strip()]
+        if len(cells) == 2:
+            about[cells[0]] = cells[1]
+        lines += [" ".join(cells)] if cells else []
+    recs, misfiled = [], 0
+    for r in range(head + 1, ws.max_row + 1):
+        d, amount = ws.cell(r, 1).value, ws.cell(r, 2).value
+        d = d.date().isoformat() if hasattr(d, "date") else str(d or "")[:10]
+        if not re.match(r"\d{4}-\d{2}-\d{2}$", d) or not isinstance(amount, (int, float)):
+            continue
+        who = str(ws.cell(r, 3).value or "").strip()
+        cell = ws.cell(r, 5)
+        short = " ".join(str(cell.value or "").replace("↗ FULL", "").split())
+        full = None
+        if cell.hyperlink and cell.hyperlink.location:
+            sheet, at = _jump(wb, cell.hyperlink.location)
+            if sheet:
+                # the full text sits under the recipient's name and the date; a different name means a wrong link
+                misfiled += str(sheet.cell(at, 1).value or "").strip() != who or str(sheet.cell(at, 2).value or "")[:10] != d
+                full = _full_desc(wb, cell.hyperlink.location)
+        link = ws.cell(r, 8).hyperlink
+        url = link.target if link and link.target else None
+        ref = GRANT_RECORD.match(url or "")
+        end = ws.cell(r, 7).value
+        a = round(float(amount), 2)
+        rec = {"row": r, "date": d, "amount": int(a) if a == int(a) else a, "who": who,
+               "dept": str(ws.cell(r, 4).value or "").strip(), "program": str(ws.cell(r, 6).value or "").strip(),
+               "end": (end.date().isoformat() if hasattr(end, "date") else str(end or "")[:10]) or None, "purpose": full or short}
+        rec |= {"ref": ref.group(1)} if ref else {"url": url}
+        if not full and short.endswith("…"):
+            rec["cut"] = True  # the export shortened this purpose and gave no full text
+        if n:
+            rec["table"] = n
+        recs.append(rec)
+    title = Path(rel).stem
+    exported = int(num(about.get("RECORDS EXPORTED")) or 0) or records_in(lines)
+    check(f"Grants: '{title}' has every record its export says ({exported})", exported, len(recs))
+    check(f"Grants: every row of '{title}' links to its government record", 0, sum(1 for x in recs if not (x.get("ref") or x.get("url"))))
+    check(f"Grants: every full purpose in '{title}' is filed under its own row's recipient and date", 0, misfiled)
+    # The same government record can fill several rows, often with a different amount, program or end date. The file
+    # does not say which row is the latest, so each record is also counted once, at its largest amount.
+    same = defaultdict(list)
+    for x in recs:
+        same[x.get("ref") or x.get("url") or f"row {x['row']}"].append(x)
+    plain = lambda x: {k: v for k, v in x.items() if k not in ("row", "once")}  # noqa: E731
+    for g in same.values():
+        if len(g) > 1:
+            for x in g:
+                x["repeat"] = len(g)
+        max(g, key=lambda x: x["amount"])["once"] = True
+    groups = [g for g in same.values() if len(g) > 1]
+    once = [x for x in recs if x.get("once")]
+
+    def top(key):
+        by = Counter()
+        for x in once:
+            by[x[key]] += x["amount"]
+        name, amount = by.most_common(1)[0]
+        return {"name": name, "amount": round(amount, 2)}
+    dates = sorted(x["date"] for x in recs)
+    return {"id": n, "file": rel, "url": gh(rel), "title": title, "about": lines,
+            "query": about.get("SEARCH QUERY"), "date_range": about.get("DATE RANGE"), "match": about.get("MATCH"),
+            "exported": exported, "rows": len(recs), "records": len(same), "first": dates[0], "last": dates[-1],
+            "repeated": len(groups), "repeat_rows": sum(len(g) for g in groups),
+            "repeat_amounts_differ": sum(len({x["amount"] for x in g}) > 1 for g in groups),
+            "repeat_identical": sum(len({json.dumps(plain(x), sort_keys=True) for x in g}) == 1 for g in groups),
+            "total_rows": round(sum(x["amount"] for x in recs), 2), "total_once": round(sum(x["amount"] for x in once), 2),
+            "departments": len({x["dept"] for x in recs}), "recipients": len({x["who"] for x in recs}),
+            "programs": len({x["program"] for x in recs}), "cut": sum(1 for x in recs if x.get("cut")),
+            "top_dept": top("dept"), "top_who": top("who")}, recs
+
+
+def grants(src):
+    """Every Grants & Contributions export in Tables/, found by its header row, so a new one is charted on the next build."""
+    tables, records = [], []
+    for p in sorted((src / "Tables").glob("*.xlsx")):
+        try:
+            wb = openpyxl.load_workbook(p)
+        except Exception:  # a file that does not open is reported by the inventory check
+            continue
+        got = grant_table(wb, p.relative_to(src).as_posix(), len(tables))
+        if got:
+            tables.append(got[0])
+            records += got[1]
+    if not tables:
+        raise FileNotFoundError(f"no Grants & Contributions tables (header {', '.join(GRANT_HEAD)}) in Tables/")
+    return {"tables": tables, "records": records}
+
+
 # ---------------------------------------------------------------- graph
 def expand(doc, folders):
     if doc and doc.startswith("@"):
@@ -971,6 +1074,7 @@ def main():
     est = section("estimates", out, spending)
     srv = section("survey", out, lambda: survey(src))
     pa = section("public_accounts", out, lambda: public_accounts(src))
+    gr = section("grants", out, lambda: grants(src))
     graph = build_graph(cur, lob, files)
     tl = timeline(cur, lob, videos, files)
     links = pdf_links(src)
@@ -984,15 +1088,18 @@ def main():
     summary = {
         "built": datetime.now(timezone.utc).isoformat(timespec="seconds"), "source_repo": f"https://github.com/{REPO}", "source_commit": sha,
         "cases": cur["cases"], "videos": videos, "checks": CHECKS,
+        # the grants page's headline numbers, so the home page does not load every grant record
+        "grants": [{k: v for k, v in t.items() if k != "about"} for t in gr["tables"]],
         "new_in_archive": {"cases": [c["id"] for c in cur["cases"] if c.get("auto")],
                            "lobbying_tables": [d["id"] for d in lob["datasets"] if d.get("auto")]},
         "counts": {"files": len(files), "nodes": len(graph["nodes"]), "edges": len(graph["edges"]), "events": len(tl),
                    "lobbying_records": len(lob["records"]), "ownership_links": own["stats"]["links"], "estimate_rounds": len(est["rounds"]),
                    "external_links": len({l["url"] for l in links}), "survey_records": srv["records"],
-                   "public_accounts_records": sum(t["record_count"] or 0 for t in pa["tables"] + pa.get("lists", []))},
+                   "public_accounts_records": sum(t["record_count"] or 0 for t in pa["tables"] + pa.get("lists", [])),
+                   "grant_rows": len(gr["records"])},
     }
     payload = {"summary": summary, "graph": graph, "timeline": tl, "lobbying": lob, "ownership": own, "estimates": est, "survey": srv, "public_accounts": pa,
-               "sources": {"files": files, "pdf_links": links}}
+               "grants": gr, "sources": {"files": files, "pdf_links": links}}
     for name, data in payload.items():
         (out / f"{name}.json").write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":"), default=sorted), encoding="utf-8")
     failed = [c for c in CHECKS if not c["pass"]]

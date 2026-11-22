@@ -1,4 +1,4 @@
-import { loadAll } from '../services/data.js';
+import { loadAll, load } from '../services/data.js';
 import { esc, int, fileName, nameCase } from '../helpers/format.js';
 import { $, setParams } from '../helpers/dom.js';
 import { NODE_TYPES } from '../enums/kinds.js';
@@ -8,7 +8,7 @@ export const title = 'Search';
 const PER_GROUP = 8;
 
 // Every name on the site, each pointing at the page that explains it.
-function index({ g, est, own, lob, src }) {
+function index({ g, est, own, lob, src, gr }) {
   const items = [];
   const add = (group, name, note, href) => items.push({ group, name, note, href, key: name.toLowerCase() });
   g.nodes.forEach((n) => add('On the connection map', n.label, NODE_TYPES[n.type]?.label || '', `#/map?case=all&node=${encodeURIComponent(n.id)}`));
@@ -16,13 +16,15 @@ function index({ g, est, own, lob, src }) {
   [...new Set(lob.records.map((r) => r.client))].forEach((c) => add('Lobbying clients', c, 'Companies that registered lobbying', `#/lobbying?client=${encodeURIComponent(c)}`));
   [...new Set(lob.records.flatMap((r) => r.institutions))].forEach((i) => add('Offices that were lobbied', i, 'Federal institutions named in lobbying records', `#/lobbying?inst=${encodeURIComponent(i)}`));
   [...new Map(own.flat.map((n) => [nameCase(n.name), n])).entries()].forEach(([name, n]) => add('Companies in the Brookfield group', name, n.level === 1 ? 'Top of the group' : `${n.level - 1} level${n.level === 2 ? '' : 's'} below Brookfield`, `#/ownership?q=${encodeURIComponent(name)}`));
+  if (gr) [...new Set(gr.records.map((r) => r.who))].forEach((w) => add('AI grant recipients', nameCase(w), 'Got federal money in the AI grants table', `#/grants?who=${encodeURIComponent(w)}`));
   src.files.forEach((f) => add('Archive files', fileName(f.path), f.path, `#/sources?q=${encodeURIComponent(fileName(f.path))}`));
   return items;
 }
 
 export async function render(root, params) {
-  const [g, est, own, lob, src] = await loadAll('graph', 'estimates', 'ownership', 'lobbying', 'sources');
-  const items = index({ g, est, own, lob, src });
+  // the grants file is big and optional: without it, search still works
+  const [[g, est, own, lob, src], gr] = await Promise.all([loadAll('graph', 'estimates', 'ownership', 'lobbying', 'sources'), load('grants').catch(() => null)]);
+  const items = index({ g, est, own, lob, src, gr });
   const groups = [...new Set(items.map((x) => x.group))];
   const state = { q: params.q || '', open: new Set() };
 
@@ -32,7 +34,7 @@ export async function render(root, params) {
       and each one opens the page that explains it.</p>
     <form class="big-search" role="search" id="q-form">
       <label for="q-in" class="sr-only">Search</label>
-      <input id="q-in" type="search" value="${esc(state.q)}" placeholder="e.g. IRCC, Telesat, Enercare, UNHCR" autocomplete="off">
+      <input id="q-in" type="search" value="${esc(state.q)}" placeholder="e.g. IRCC, Telesat, Cohere, UNHCR" autocomplete="off">
       <button class="btn" type="submit">Search</button>
     </form>
     <p class="small muted">Searching ${int(items.length)} names across ${groups.length} kinds of record.</p>

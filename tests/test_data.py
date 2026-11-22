@@ -27,7 +27,7 @@ class DataContract(unittest.TestCase):
         cls.s, cls.g, cls.src = load("summary"), load("graph"), load("sources")
 
     def test_all_files_present(self):
-        for n in ["summary", "graph", "timeline", "lobbying", "ownership", "estimates", "survey", "public_accounts", "sources"]:
+        for n in ["summary", "graph", "timeline", "lobbying", "ownership", "estimates", "survey", "public_accounts", "grants", "sources"]:
             self.assertTrue((DATA / f"{n}.json").is_file(), n)
 
     def test_graph_endpoints_and_enums(self):
@@ -93,6 +93,22 @@ class DataContract(unittest.TestCase):
         for t in pa.get("lists", []):
             self.assertEqual(t["rows"], len(t["records"]))
             self.assertAlmostEqual(t["total"], sum(d["amount"] for d in t["by_dept"]), places=2)
+
+    def test_grants_add_up(self):
+        gr = load("grants")
+        keys = {"row", "date", "amount", "who", "dept", "program", "end", "purpose"}
+        for t in gr["tables"]:
+            recs = [r for r in gr["records"] if r.get("table", 0) == t["id"]]
+            self.assertEqual(t["rows"], len(recs))
+            self.assertAlmostEqual(t["total_rows"], sum(r["amount"] for r in recs), places=2)
+            once = [r for r in recs if r.get("once")]
+            self.assertEqual(t["records"], len(once))  # one row stands for each government record
+            self.assertAlmostEqual(t["total_once"], sum(r["amount"] for r in once), places=2)
+            self.assertEqual(t["repeat_rows"], sum(1 for r in recs if r.get("repeat")))
+        for r in gr["records"]:
+            self.assertTrue(keys <= set(r), r["row"])
+            self.assertTrue(r.get("ref") or r.get("url"), r["row"])
+            self.assertRegex(r["date"], r"^\d{4}-\d{2}-\d{2}$")
 
     def test_ownership_tree_counts(self):
         o = load("ownership")

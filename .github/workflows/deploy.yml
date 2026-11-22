@@ -74,7 +74,7 @@ jobs:
       - name: Start from the live data, so a section the archive breaks keeps its last good copy
         run: |
           mkdir -p site/data
-          for f in lobbying ownership estimates survey; do
+          for f in lobbying ownership estimates survey grants; do
             curl -fsSL "$LIVE_DATA/$f.json?run=$GITHUB_RUN_ID" -o "site/data/$f.json" || rm -f "site/data/$f.json"
           done
 
