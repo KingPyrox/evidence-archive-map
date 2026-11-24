@@ -201,12 +201,15 @@ LOBBY_FILES = {
 }
 LOBBY_NAMES = {"dataset:lobby-drones": "Drones", "dataset:lobby-telesat": "Telesat",
                "dataset:lobby-roshel": "Roshel", "dataset:lobby-stelco": "Stelco"}
+# Both export layouts: the first (header on row 10) and the one from November 2026 (header on row 12, with
+# Lobbying Subject, one Record ID column and the officer who filed the report).
 HEAD_KEYS = {
     "Date": "date", "Client / Organization": "client", "Record Type": "type",
     "Government Institutions": "institutions", "Public Office Holders": "holders",
-    "Description": "description", "Registrant / Lobbyist": "registrant", "Lobbying Firm": "firm",
-    "Government Funding Reported": "funding", "Registration ID": "reg_id",
-    "Communication ID": "comm_id", "Source URL": "url",
+    "Description": "description", "Lobbying Subject": "subjects",
+    "Registrant / Lobbyist": "registrant", "Responsible Officer / Registrant (Filed Report)": "registrant",
+    "Lobbying Firm": "firm", "Government Funding Reported": "funding", "Registration ID": "reg_id",
+    "Communication ID": "comm_id", "Record ID": "record_id", "Source URL": "url",
 }
 
 
@@ -217,11 +220,12 @@ def _jump(wb, location):
     return wb[m.group(1)], int(m.group(3))
 
 
-def _inst_list(wb, location):
+def _numbered_list(wb, location):
+    """The '1.  ...' lines a cell links to (Institution Lists, or Full Descriptions for office holders and subjects)."""
     ws, r = _jump(wb, location)
     if not ws:
         return None
-    out, r = [], r + 2  # skip client name and "N government institutions"
+    out, r = [], r + 2  # skip the client name and the list's own label ("N government institutions", "LOBBYING SUBJECT")
     while True:
         v = ws.cell(r, 1).value
         m = re.match(r"^\s*\d+\.\s+(.*)$", str(v or ""))
@@ -270,28 +274,31 @@ def lobby_tables(src):
 def lobby_table(src, ds_id, rel):
     wb = openpyxl.load_workbook(src / rel)
     ws = wb[wb.sheetnames[0]]
+    # find the header row and the labelled about rows above it, since the layouts put them on different rows
+    hr = next((r for r in range(1, 40) if ws.cell(r, 1).value == "Date"), None)
+    if hr is None:
+        raise ValueError("no 'Date' header row, so this is not a Lobbying Registry export")
+    about = {str(ws.cell(r, 1).value).strip().upper(): ws.cell(r, 2).value for r in range(4, hr) if ws.cell(r, 1).value}
     meta = {"id": ds_id, "file": rel, "url": gh(rel), "query": ws["B2"].value,
-            "banner": ws["B3"].value, "date_range": ws["B6"].value, "institutions_banner": ws["B7"].value}
-    heads = [HEAD_KEYS.get(c.value, c.value) for c in ws[10]]
+            "banner": ws["B3"].value, "date_range": about.get("DATE RANGE"), "institutions_banner": about.get("LOBBIED INSTITUTIONS")}
+    heads = [HEAD_KEYS.get(c.value, c.value) for c in ws[hr]]
     records = []
-    for row in ws.iter_rows(min_row=11):
+    for row in ws.iter_rows(min_row=hr + 1):
         if not re.match(r"\d{4}-\d{2}-\d{2}", str(row[0].value or "")):
             continue
-        rec = {"dataset": ds_id, "date": None, "client": None, "type": None, "institutions": [], "holders": [],
+        rec = {"dataset": ds_id, "date": None, "client": None, "type": None, "institutions": [], "holders": [], "subjects": [],
                "description": None, "registrant": None, "firm": None, "funding": None, "reg_id": None, "comm_id": None, "url": None}
         for h, c in zip(heads, row):
             if h is None:
                 continue
             v = c.value
             link = c.hyperlink
-            if h == "institutions":
-                lst = _inst_list(wb, link.location) if link and link.location else None
+            if h in ("institutions", "holders", "subjects"):
+                lst = _numbered_list(wb, link.location) if link and link.location else None
                 v = lst if lst is not None else [s.strip() for s in str(v or "").split(";") if s.strip()]
             elif h == "description":
                 full = _full_desc(wb, link.location) if link and link.location else None
                 v = full or (str(v).replace("▶ VIEW FULL", "").strip() if v else "")
-            elif h == "holders":
-                v = [s.strip() for s in str(v or "").split(";") if s.strip()]
             elif h == "url":
                 v = link.target if link and link.target else v
             elif h == "funding":
@@ -299,6 +306,9 @@ def lobby_table(src, ds_id, rel):
             elif v is not None:
                 v = str(v).strip()
             rec[h] = v
+        rid = rec.pop("record_id", None)  # the newer layout has one ID column for both record types
+        if rid:
+            rec["comm_id" if "communication" in (rec["type"] or "").lower() else "reg_id"] = rid
         records.append(rec)
     if not records or "client" not in heads:
         raise ValueError("no dated rows under a 'Client / Organization' header, so this is not a Lobbying Registry export")
@@ -306,6 +316,10 @@ def lobby_table(src, ds_id, rel):
     m = re.search(r"(\d+) matching records", meta["banner"] or "")
     meta["records"] = n
     check(f"{rel}: record count", int(m.group(1)) if m else None, n, "banner vs parsed rows")
+    stated = re.findall(r"(\d+)\s+(COMMUNICATION|REGISTRATION)", str(about.get("RECORD TYPES") or "").upper())
+    if stated:
+        found = " / ".join(f"{sum(k.lower() in (r['type'] or '').lower() for r in records)} {k.lower()}s" for _, k in stated)
+        check(f"{rel}: record types", " / ".join(f"{c} {k.lower()}s" for c, k in stated), found, "banner vs parsed rows")
     inst = sorted({i for r in records for i in r.get("institutions", [])})
     mi = re.search(r"(\d+) DISTINCT", meta["institutions_banner"] or "")
     meta["distinct_institutions"] = len(inst)

@@ -59,11 +59,12 @@ class DataContract(unittest.TestCase):
 
     def test_lobbying_records_have_every_field(self):
         lob = load("lobbying")
-        keys = {"dataset", "date", "client", "type", "institutions", "holders", "description", "registrant", "firm", "funding", "reg_id", "comm_id", "url"}
+        keys = {"dataset", "date", "client", "type", "institutions", "holders", "subjects", "description", "registrant", "firm", "funding", "reg_id", "comm_id", "url"}
         for r in lob["records"]:
             self.assertEqual(keys, set(r), r.get("url"))
             self.assertIsInstance(r["institutions"], list)
             self.assertIsInstance(r["holders"], list)
+            self.assertIsInstance(r["subjects"], list)
         self.assertEqual(sum(d["records"] for d in lob["datasets"]), len(lob["records"]))
         for d in lob["datasets"]:
             self.assertTrue(d.get("name"), d["id"])

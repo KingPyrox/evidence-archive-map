@@ -51,7 +51,7 @@ site/data/*.json  ──►  static site (site/)  ──►  GitHub Pages
 |---|---|
 | A file the site already reads is edited | Rebuilt from the new file. |
 | A new top-level case folder (same rule as the archive's `tools/build_cases.py`) | Gets a case card, its file list and a timeline entry, marked "New: not mapped yet". Connections are added by hand in `curated.json`. |
-| A new table that `assets/tables.json` tags `LOBBYING REGISTRY` | Charted on the Lobbying page, the map and the timeline, with a generated name and colour. |
+| A new table that `assets/tables.json` tags `LOBBYING REGISTRY` | Charted on the Lobbying page, the map and the timeline, with a generated name and colour. Both export layouts are read: the first (Description, Registration ID, Communication ID) and the newer one (Lobbying Subject, one Record ID). |
 | A new spreadsheet in `Tables/` with the Grants & Contributions header (Date, Amount (CAD), Recipient, Department, Purpose, Program, End Date, Source URL) | Charted on the AI grants page, with its own counts and checks. |
 | A file the pipeline reads is moved to another folder | Found by its file name. A check on the site names the new path. |
 | A file is renamed, removed or changes layout | Only that section keeps its last good copy (from the live site). A failed check on the site says which section and why. Map links that cite the file are hidden until `curated.json` is updated. |

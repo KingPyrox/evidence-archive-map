@@ -85,7 +85,7 @@ export async function render(root, params) {
     return recs.filter((r) => (!state.ds || r.dataset === state.ds)
       && (!state.client || r.client === state.client)
       && (!state.inst || r.institutions.includes(state.inst))
-      && (!q || [r.description, r.registrant, r.firm, r.client, ...r.holders, ...r.institutions].join(' ').toLowerCase().includes(q)));
+      && (!q || [r.description, r.registrant, r.firm, r.client, ...r.holders, ...(r.subjects || []), ...r.institutions].join(' ').toLowerCase().includes(q)));
   }
 
   function stacked(keyFn, rows, top) {
@@ -155,7 +155,7 @@ export async function render(root, params) {
       { label: 'Paid for by', html: (r) => `<b>${esc(r.client)}</b><br><span class="badge" style="background:${COLORS[r.dataset]}22">${esc(NAMES[r.dataset])}</span> <span class="small muted">${esc(r.type)}</span>` },
       { label: 'Talked to', html: (r) => `<span class="small">${r.institutions.map(esc).join('<br>')}</span>` },
       { label: 'Office holders', html: (r) => `<span class="small">${r.holders.map(esc).join('<br>') || '—'}</span>` },
-      { label: 'Subject', html: (r) => `<span class="small">${r.description ? esc(r.description) : '<span class="muted">not given in this table</span>'}</span>` },
+      { label: 'Subject', html: (r) => `<span class="small">${r.description ? esc(r.description) : r.subjects?.length ? r.subjects.map(esc).join('<br>') : '<span class="muted">not given in this table</span>'}</span>` },
       { label: 'Lobbyist / firm', html: (r) => `<span class="small">${esc(r.registrant || '')}${r.firm ? `<br><i>${esc(r.firm)}</i>` : ''}</span>` },
       { label: 'Government money reported', num: true, value: (r) => (r.funding ? money(r.funding) : '—') },
       { label: 'Registry', html: (r) => (r.url ? ext(r.url, r.comm_id || r.reg_id || 'open') : esc(r.reg_id || '')) },
